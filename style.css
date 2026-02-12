@@ -1,0 +1,304 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --gold: #D4AF37;
+    --dark: #0A0A0A;
+    --light: #FFFFFF;
+    --easing-luxury: cubic-bezier(0.23, 1, 0.32, 1);
+    --easing-smooth: cubic-bezier(0.4, 0.0, 0.2, 1);
+    --easing-cinematic: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+
+html {
+    scroll-behavior: auto;
+}
+
+body {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    background: var(--dark);
+    color: var(--light);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Preloader */
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: var(--dark);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s var(--easing-luxury), visibility 0.8s;
+}
+
+.preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.preloader-content {
+    text-align: center;
+}
+
+.spirit-icon {
+    margin-bottom: 2rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+.loading-bar {
+    width: 200px;
+    height: 2px;
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.loading-progress {
+    height: 100%;
+    background: var(--gold);
+    width: 0%;
+    transition: width 0.3s ease-out;
+}
+
+/* Scroll Progress */
+.scroll-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(212, 175, 55, 0.1);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.scroll-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), #F4E5C2);
+    width: 0%;
+    transition: width 0.1s ease-out;
+}
+
+/* Grain Overlay */
+.grain-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+}
+
+/* Scroll Spacer */
+.scroll-spacer {
+    height: 100vh;
+    pointer-events: none;
+}
+
+/* Pinned Viewport */
+.viewport-pin {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Vignette */
+.vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 35%,
+        rgba(0, 0, 0, 0.25) 65%,
+        rgba(0, 0, 0, 0.65) 100%
+    );
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* Frame Container */
+.frame-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Individual Frames */
+.frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+.frame:first-child {
+    opacity: 1;
+}
+
+.frame-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.15);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Text Container */
+.text-container {
+    position: absolute;
+    bottom: 12%;
+    left: 8%;
+    max-width: 700px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.text-frame {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.text-frame:first-child {
+    opacity: 1;
+}
+
+.title {
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    color: var(--light);
+    text-transform: uppercase;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.title-line {
+    display: block;
+    transform: translateY(20px);
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.subtitle {
+    font-size: clamp(1rem, 2vw, 1.5rem);
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(15px);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    will-change: transform, opacity;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .text-container {
+        bottom: 15%;
+        left: 5%;
+        right: 5%;
+        max-width: 100%;
+    }
+
+    .title {
+        font-size: clamp(2.5rem, 10vw, 4rem);
+    }
+
+    .subtitle {
+        font-size: clamp(0.875rem, 3vw, 1.125rem);
+        letter-spacing: 0.1em;
+    }
+}
+
+/* Performance Optimizations */
+.frame,
+.frame-image,
+.text-frame {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High DPI */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .frame-image {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* GPU Acceleration */
+.frame,
+.frame-image,
+.text-frame,
+.title-line,
+.subtitle {
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Print */
+@media print {
+    .preloader,
+    .scroll-indicator,
+    .grain-overlay {
+        display: none;
+    }
+}
