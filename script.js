@@ -1,14 +1,46 @@
 gsap.registerPlugin(ScrollTrigger);
 
+// Device Detection and Configuration
+const DeviceConfig = {
+    isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+    isTablet: /iPad|Android/i.test(navigator.userAgent) && window.innerWidth >= 768,
+    isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    
+    get scrollDuration() {
+        if (this.isMobile && !this.isTablet) return 250;
+        if (this.isTablet) return 300;
+        return 400;
+    },
+    
+    get scrubValue() {
+        if (this.isMobile && !this.isTablet) return 0.8;
+        if (this.isTablet) return 1.0;
+        return 1.2;
+    },
+    
+    get parallaxDepth() {
+        if (this.isMobile && !this.isTablet) return 15;
+        if (this.isTablet) return 20;
+        return 30;
+    },
+    
+    get scaleStart() {
+        if (this.isMobile) return 1.1;
+        return 1.15;
+    }
+};
+
 // Configuration
 const CONFIG = {
     frameCount: 8,
-    scrollDuration: 400,
+    get scrollDuration() { return DeviceConfig.scrollDuration; },
     transitionOverlap: 0.15,
-    scaleStart: 1.15,
+    get scaleStart() { return DeviceConfig.scaleStart; },
     scaleEnd: 1.0,
-    parallaxDepth: 30,
-    textStagger: 0.08
+    get parallaxDepth() { return DeviceConfig.parallaxDepth; },
+    textStagger: 0.08,
+    get scrub() { return DeviceConfig.scrubValue; }
 };
 
 // Preloader
@@ -34,7 +66,19 @@ class Preloader {
             return;
         }
 
-        this.images.forEach((img) => {
+        // Prioritize first image
+        const firstImage = this.images[0];
+        if (firstImage) {
+            if (firstImage.complete) {
+                this.imageLoaded();
+            } else {
+                firstImage.addEventListener('load', () => this.imageLoaded());
+                firstImage.addEventListener('error', () => this.imageLoaded());
+            }
+        }
+
+        // Load remaining images
+        Array.from(this.images).slice(1).forEach((img) => {
             if (img.complete) {
                 this.imageLoaded();
             } else {
@@ -68,6 +112,44 @@ class Preloader {
     }
 }
 
+// Hero Intro Animation
+class HeroIntro {
+    constructor() {
+        this.heroSection = document.querySelector('.hero-intro');
+        this.scrollHint = document.querySelector('.scroll-hint');
+        this.init();
+    }
+
+    init() {
+        if (this.scrollHint) {
+            this.scrollHint.addEventListener('click', () => this.scrollToExperience());
+        }
+
+        // Fade out hero on scroll
+        if (this.heroSection) {
+            gsap.to(this.heroSection, {
+                scrollTrigger: {
+                    trigger: this.heroSection,
+                    start: 'top top',
+                    end: '80% top',
+                    scrub: true
+                },
+                opacity: 0,
+                scale: 0.95,
+                ease: 'power2.inOut'
+            });
+        }
+    }
+
+    scrollToExperience() {
+        const heroHeight = this.heroSection.offsetHeight;
+        window.scrollTo({
+            top: heroHeight,
+            behavior: 'smooth'
+        });
+    }
+}
+
 // Scroll Progress
 class ScrollProgress {
     constructor() {
@@ -87,7 +169,7 @@ class ScrollProgress {
     }
 }
 
-// Master Timeline Controller
+// Master Timeline Controller with Enhanced Animations
 class CinematicScroll {
     constructor() {
         this.frames = gsap.utils.toArray('.frame');
@@ -115,20 +197,21 @@ class CinematicScroll {
             const textFrame = this.textFrames[index];
             const titleLines = textFrame.querySelectorAll('.title-line');
             const subtitle = textFrame.querySelector('.subtitle');
+            const frameNumber = textFrame.querySelector('.frame-number');
             
             const startTime = index * frameDuration;
             const isFirst = index === 0;
             const isLast = index === this.frames.length - 1;
 
-            // Frame fade in/out
+            // Frame fade in/out with improved easing
             if (!isFirst) {
                 this.masterTimeline.fromTo(
                     frame,
                     { opacity: 0 },
                     { 
                         opacity: 1, 
-                        duration: transitionDuration * 0.4,
-                        ease: 'power2.inOut'
+                        duration: transitionDuration * 0.5,
+                        ease: 'power2.out'
                     },
                     startTime
                 );
@@ -139,14 +222,14 @@ class CinematicScroll {
                     frame,
                     { 
                         opacity: 0, 
-                        duration: transitionDuration * 0.4,
-                        ease: 'power2.inOut'
+                        duration: transitionDuration * 0.5,
+                        ease: 'power2.in'
                     },
-                    startTime + frameDuration * 0.6
+                    startTime + frameDuration * 0.5
                 );
             }
 
-            // Image scale animation
+            // Enhanced image scale animation with realistic easing
             this.masterTimeline.fromTo(
                 image,
                 { 
@@ -154,13 +237,13 @@ class CinematicScroll {
                 },
                 { 
                     scale: CONFIG.scaleEnd,
-                    duration: transitionDuration,
-                    ease: 'power1.inOut'
+                    duration: transitionDuration * 1.2,
+                    ease: 'power1.out'
                 },
                 startTime
             );
 
-            // Parallax depth
+            // Smooth parallax depth
             this.masterTimeline.fromTo(
                 image,
                 { 
@@ -169,60 +252,44 @@ class CinematicScroll {
                 { 
                     y: -CONFIG.parallaxDepth,
                     duration: frameDuration,
-                    ease: 'none'
+                    ease: 'linear'
                 },
                 startTime
             );
 
-            // Text animations
+            // Enhanced text animations
             if (!isFirst) {
                 this.masterTimeline.fromTo(
                     textFrame,
                     { opacity: 0 },
                     { 
                         opacity: 1, 
-                        duration: transitionDuration * 0.3,
+                        duration: transitionDuration * 0.4,
                         ease: 'power2.out'
                     },
                     startTime + transitionDuration * 0.1
                 );
 
-                // Stagger title lines
+                // Stagger title lines with bounce
                 this.masterTimeline.fromTo(
                     titleLines,
                     { 
-                        y: 20,
+                        y: 30,
                         opacity: 0
                     },
                     { 
                         y: 0,
                         opacity: 1,
-                        duration: 0.8,
+                        duration: 1,
                         stagger: CONFIG.textStagger,
-                        ease: 'power3.out'
+                        ease: 'back.out(1.2)'
                     },
                     startTime + transitionDuration * 0.15
                 );
 
-                // Subtitle
+                // Subtitle with smooth ease
                 this.masterTimeline.fromTo(
                     subtitle,
-                    { 
-                        y: 15,
-                        opacity: 0
-                    },
-                    { 
-                        y: 0,
-                        opacity: 1,
-                        duration: 0.8,
-                        ease: 'power3.out'
-                    },
-                    startTime + transitionDuration * 0.25
-                );
-            } else {
-                // Initial frame text animation
-                this.masterTimeline.fromTo(
-                    titleLines,
                     { 
                         y: 20,
                         opacity: 0
@@ -230,9 +297,43 @@ class CinematicScroll {
                     { 
                         y: 0,
                         opacity: 1,
-                        duration: 1.2,
+                        duration: 0.9,
+                        ease: 'power3.out'
+                    },
+                    startTime + transitionDuration * 0.25
+                );
+
+                // Frame number animation
+                if (frameNumber) {
+                    this.masterTimeline.fromTo(
+                        frameNumber,
+                        { 
+                            y: 15,
+                            opacity: 0
+                        },
+                        { 
+                            y: 0,
+                            opacity: 1,
+                            duration: 0.8,
+                            ease: 'power2.out'
+                        },
+                        startTime + transitionDuration * 0.35
+                    );
+                }
+            } else {
+                // Initial frame text animation with enhanced timing
+                this.masterTimeline.fromTo(
+                    titleLines,
+                    { 
+                        y: 30,
+                        opacity: 0
+                    },
+                    { 
+                        y: 0,
+                        opacity: 1,
+                        duration: 1.4,
                         stagger: CONFIG.textStagger,
-                        ease: 'power3.out',
+                        ease: 'back.out(1.2)',
                         delay: 0.3
                     },
                     0
@@ -241,7 +342,7 @@ class CinematicScroll {
                 this.masterTimeline.fromTo(
                     subtitle,
                     { 
-                        y: 15,
+                        y: 20,
                         opacity: 0
                     },
                     { 
@@ -249,22 +350,41 @@ class CinematicScroll {
                         opacity: 1,
                         duration: 1.2,
                         ease: 'power3.out',
-                        delay: 0.5
+                        delay: 0.6
                     },
                     0
                 );
+
+                if (frameNumber) {
+                    this.masterTimeline.fromTo(
+                        frameNumber,
+                        { 
+                            y: 15,
+                            opacity: 0
+                        },
+                        { 
+                            y: 0,
+                            opacity: 1,
+                            duration: 1,
+                            ease: 'power2.out',
+                            delay: 0.8
+                        },
+                        0
+                    );
+                }
             }
 
             if (!isLast) {
-                // Text fade out
+                // Enhanced text fade out
                 this.masterTimeline.to(
-                    textFrame,
+                    [textFrame, frameNumber],
                     { 
                         opacity: 0, 
-                        duration: transitionDuration * 0.25,
+                        y: -10,
+                        duration: transitionDuration * 0.3,
                         ease: 'power2.in'
                     },
-                    startTime + frameDuration * 0.65
+                    startTime + frameDuration * 0.6
                 );
             }
         });
@@ -276,12 +396,11 @@ class CinematicScroll {
             start: 'top top',
             end: 'bottom bottom',
             pin: this.viewportPin,
-            scrub: 1.2,
+            scrub: CONFIG.scrub,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             animation: this.masterTimeline,
             onUpdate: (self) => {
-                const progress = self.progress * 100;
                 this.masterTimeline.progress(self.progress);
             }
         });
@@ -293,7 +412,7 @@ class CinematicScroll {
     }
 }
 
-// Lazy Loading
+// Enhanced Lazy Loading
 function setupLazyLoading() {
     const images = document.querySelectorAll('img[loading="lazy"]');
 
@@ -302,12 +421,22 @@ function setupLazyLoading() {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    img.src = img.src;
+                    
+                    // Add fade-in effect
+                    img.style.opacity = '0';
+                    img.style.transition = 'opacity 0.5s ease-in-out';
+                    
+                    if (img.src) {
+                        img.onload = () => {
+                            img.style.opacity = '1';
+                        };
+                    }
+                    
                     imageObserver.unobserve(img);
                 }
             });
         }, {
-            rootMargin: '100px'
+            rootMargin: DeviceConfig.isMobile ? '50px' : '100px'
         });
 
         images.forEach(img => imageObserver.observe(img));
@@ -317,37 +446,172 @@ function setupLazyLoading() {
 // Performance Optimization
 function optimizePerformance() {
     let resizeTimer;
+    let lastWidth = window.innerWidth;
+
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            ScrollTrigger.refresh();
-        }, 250);
+        
+        const currentWidth = window.innerWidth;
+        
+        // Only refresh if width changed (avoid mobile scroll bar issues)
+        if (Math.abs(currentWidth - lastWidth) > 10) {
+            resizeTimer = setTimeout(() => {
+                ScrollTrigger.refresh();
+                lastWidth = currentWidth;
+            }, 250);
+        }
     }, { passive: true });
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            ScrollTrigger.refresh();
+            lastWidth = window.innerWidth;
+        }, 300);
+    });
+
+    // Reduced motion support
+    if (DeviceConfig.reducedMotion) {
         ScrollTrigger.getAll().forEach(st => st.kill());
         gsap.globalTimeline.timeScale(100);
     }
 
-    window.addEventListener('orientationchange', () => {
-        setTimeout(() => ScrollTrigger.refresh(), 200);
+    // Passive scroll listeners
+    document.addEventListener('scroll', () => {}, { passive: true });
+    document.addEventListener('touchstart', () => {}, { passive: true });
+}
+
+// Touch Gesture Support
+function setupTouchGestures() {
+    if (!DeviceConfig.isTouch) return;
+
+    const viewportPin = document.querySelector('.viewport-pin');
+    if (!viewportPin) return;
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    viewportPin.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    viewportPin.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartY - touchEndY;
+
+        if (Math.abs(diff) > swipeThreshold) {
+            // Swipe detected - natural scroll will handle it
+            return;
+        }
+    }
+}
+
+// Viewport Height Fix for Mobile
+function fixMobileViewport() {
+    if (!DeviceConfig.isMobile) return;
+
+    // Set CSS custom property for true viewport height
+    const setVh = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    setVh();
+    
+    window.addEventListener('resize', () => {
+        setTimeout(setVh, 100);
+    }, { passive: true });
+}
+
+// Initialize Case Study Animations
+function initCaseStudyAnimations() {
+    const caseStudyBlocks = gsap.utils.toArray('.case-study-block');
+    
+    caseStudyBlocks.forEach((block, index) => {
+        gsap.fromTo(block,
+            {
+                opacity: 0,
+                y: 30
+            },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: block,
+                    start: 'top 85%',
+                    end: 'top 60%',
+                    toggleActions: 'play none none reverse'
+                }
+            }
+        );
     });
+
+    // Transition section animation
+    const transitionText = document.querySelector('.transition-text');
+    if (transitionText) {
+        gsap.fromTo(transitionText,
+            {
+                opacity: 0,
+                scale: 0.9
+            },
+            {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)',
+                scrollTrigger: {
+                    trigger: transitionText,
+                    start: 'top 80%',
+                    toggleActions: 'play none none reverse'
+                }
+            }
+        );
+    }
 }
 
 // Initialize
 let cinematicScroll;
+let heroIntro;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Device Config:', {
+        isMobile: DeviceConfig.isMobile,
+        isTablet: DeviceConfig.isTablet,
+        isTouch: DeviceConfig.isTouch,
+        scrollDuration: CONFIG.scrollDuration,
+        scrub: CONFIG.scrub
+    });
+
     document.body.style.overflow = 'hidden';
 
+    // Fix mobile viewport
+    fixMobileViewport();
+
+    // Initialize preloader
     const preloader = new Preloader();
     await preloader.init();
 
+    // Initialize components
+    heroIntro = new HeroIntro();
     new ScrollProgress();
     setupLazyLoading();
+    setupTouchGestures();
     optimizePerformance();
 
+    // Initialize cinematic scroll
     cinematicScroll = new CinematicScroll();
+
+    // Initialize case study animations
+    setTimeout(() => {
+        initCaseStudyAnimations();
+    }, 100);
 });
 
 // Cleanup
@@ -360,7 +624,10 @@ window.addEventListener('beforeunload', () => {
 
 // Export API
 window.RollsRoyceCinematic = {
-    refresh: () => ScrollTrigger.refresh(),
+    refresh: () => {
+        ScrollTrigger.refresh();
+        console.log('ScrollTrigger refreshed');
+    },
     destroy: () => {
         if (cinematicScroll) {
             cinematicScroll.destroy();
@@ -371,5 +638,15 @@ window.RollsRoyceCinematic = {
             cinematicScroll.destroy();
         }
         cinematicScroll = new CinematicScroll();
-    }
+    },
+    deviceInfo: () => DeviceConfig
 };
+
+// Auto-refresh on visibility change (mobile optimization)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        setTimeout(() => {
+            ScrollTrigger.refresh();
+        }, 100);
+    }
+});

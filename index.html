@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="description" content="Premium automotive brand experience concept showcasing scroll-driven storytelling and luxury interface design by Ascend Labs.">
     <meta name="keywords" content="luxury automotive, brand experience, scroll animation, UX design, portfolio">
     <meta name="author" content="Ascend Labs">
@@ -17,6 +17,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     
     <title>Rolls-Royce Black Badge | The Pinnacle of Luxury</title>
     <link rel="stylesheet" href="style.css">
@@ -38,7 +39,7 @@
             <div class="loading-bar">
                 <div class="loading-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <p class="sr-only">Loading luxury experience</p>
+            <p class="loading-text">Loading Experience</p>
         </div>
     </aside>
 
@@ -50,6 +51,28 @@
     <!-- Decorative Grain Overlay -->
     <div class="grain-overlay" aria-hidden="true"></div>
 
+    <!-- Hero Intro Section -->
+    <section class="hero-intro" aria-label="Welcome introduction">
+        <div class="hero-content">
+            <div class="hero-logo" aria-hidden="true">
+                <svg width="80" height="80" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M30 5L35 25H45L37 33L41 53L30 43L19 53L23 33L15 25H25L30 5Z" fill="#D4AF37"/>
+                </svg>
+            </div>
+            <h1 class="hero-title">
+                <span class="hero-title-line">ROLLS-ROYCE</span>
+                <span class="hero-title-line">BLACK BADGE</span>
+            </h1>
+            <p class="hero-subtitle">A Cinematic Journey Through Automotive Excellence</p>
+            <div class="scroll-hint" aria-label="Scroll to explore">
+                <span class="scroll-hint-text">Scroll to Experience</span>
+                <svg class="scroll-hint-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
     <!-- Main Experience Spacer -->
     <div class="scroll-spacer"></div>
 
@@ -60,86 +83,103 @@
         <!-- Visual Frames Container -->
         <div class="frame-container" role="img" aria-label="Animated vehicle showcase">
             <div class="frame" data-frame="0">
-                <img src="frame01.webp" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager">
+                <img src="frame01.webp" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="1">
-                <img src="frame02.webp" alt="Rolls-Royce in motion, capturing dynamic performance" class="frame-image" loading="lazy">
+                <img src="frame02.webp" alt="Rolls-Royce in motion, capturing dynamic performance" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="2">
-                <img src="frame03.webp" alt="Iconic Spirit of Ecstasy hood ornament detail shot" class="frame-image" loading="lazy">
+                <img src="frame03.webp" alt="Iconic Spirit of Ecstasy hood ornament detail shot" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="3">
-                <img src="frame04.webp" alt="Rolls-Royce Phantom showcasing elegant profile design" class="frame-image" loading="lazy">
+                <img src="frame04.webp" alt="Rolls-Royce Phantom showcasing elegant profile design" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="4">
-                <img src="frame05.webp" alt="High-speed motion blur emphasizing velocity and power" class="frame-image" loading="lazy">
+                <img src="frame05.webp" alt="High-speed motion blur emphasizing velocity and power" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="5">
-                <img src="frame06.webp" alt="Bespoke interior craftsmanship and luxury materials" class="frame-image" loading="lazy">
+                <img src="frame06.webp" alt="Bespoke interior craftsmanship and luxury materials" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="6">
-                <img src="frame07.webp" alt="Rolls-Royce Cullinan demonstrating commanding presence" class="frame-image" loading="lazy">
+                <img src="frame07.webp" alt="Rolls-Royce Cullinan demonstrating commanding presence" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
             <div class="frame" data-frame="7">
-                <img src="frame08.webp" alt="Rear view showcasing distinctive design language" class="frame-image" loading="lazy">
+                <img src="frame08.webp" alt="Rear view showcasing distinctive design language" class="frame-image" loading="lazy" width="1920" height="1080">
             </div>
         </div>
 
         <!-- Narrative Text Overlay -->
-        <header class="text-container" role="banner">
+        <div class="text-container">
             <div class="text-frame" data-text="0">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">BLACK</span>
                     <span class="title-line">BADGE</span>
-                </h1>
+                </h2>
                 <p class="subtitle">The dark side of luxury</p>
+                <div class="frame-number" aria-hidden="true">01</div>
             </div>
             <div class="text-frame" data-text="1">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">POWER</span>
                     <span class="title-line">UNVEILED</span>
-                </h1>
+                </h2>
                 <p class="subtitle">Where presence meets performance</p>
+                <div class="frame-number" aria-hidden="true">02</div>
             </div>
             <div class="text-frame" data-text="2">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">SPIRIT OF</span>
                     <span class="title-line">ECSTASY</span>
-                </h1>
+                </h2>
                 <p class="subtitle">An icon reimagined</p>
+                <div class="frame-number" aria-hidden="true">03</div>
             </div>
             <div class="text-frame" data-text="3">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">PHANTOM</span>
-                </h1>
+                </h2>
                 <p class="subtitle">The ultimate expression of luxury</p>
+                <div class="frame-number" aria-hidden="true">04</div>
             </div>
             <div class="text-frame" data-text="4">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">VELOCITY</span>
-                </h1>
+                </h2>
                 <p class="subtitle">Motion in its purest form</p>
+                <div class="frame-number" aria-hidden="true">05</div>
             </div>
             <div class="text-frame" data-text="5">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">BESPOKE</span>
                     <span class="title-line">INTERIOR</span>
-                </h1>
+                </h2>
                 <p class="subtitle">Craftsmanship without compromise</p>
+                <div class="frame-number" aria-hidden="true">06</div>
             </div>
             <div class="text-frame" data-text="6">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">CULLINAN</span>
-                </h1>
+                </h2>
                 <p class="subtitle">Effortless everywhere</p>
+                <div class="frame-number" aria-hidden="true">07</div>
             </div>
             <div class="text-frame" data-text="7">
-                <h1 class="title">
+                <h2 class="title">
                     <span class="title-line">PRESENCE</span>
-                </h1>
+                </h2>
                 <p class="subtitle">An arrival unlike any other</p>
+                <div class="frame-number" aria-hidden="true">08</div>
             </div>
-        </header>
+        </div>
+    </section>
+
+    <!-- Transition Section -->
+    <section class="transition-section" aria-label="Experience transition">
+        <div class="transition-content">
+            <div class="transition-line"></div>
+            <p class="transition-text">Discover The Story Behind The Experience</p>
+            <div class="transition-line"></div>
+        </div>
     </section>
 
     <!-- Case Study Section -->
@@ -189,9 +229,9 @@
                 <section class="case-study-block">
                     <h3 class="block-title">Technical Execution</h3>
                     <div class="block-content">
-                        <p><strong>Animation Architecture:</strong> GSAP-powered scroll-linked timeline with sub-millisecond precision, ensuring buttery-smooth 60fps performance across devices. Transition overlaps and easing curves tuned for luxury perception.</p>
-                        <p><strong>Asset Strategy:</strong> WebP image compression, lazy loading, and progressive enhancement patterns reduce initial payload while maintaining visual fidelity critical to luxury positioning.</p>
-                        <p><strong>Accessibility Foundation:</strong> ARIA landmarks, semantic HTML5, reduced-motion support, and keyboard navigation ensure inclusive excellence—luxury must be universally accessible.</p>
+                        <p><strong>Animation Architecture:</strong> GSAP-powered scroll-linked timeline with adaptive performance tuning, ensuring smooth 60fps across devices. Transition overlaps and easing curves meticulously crafted for luxury perception.</p>
+                        <p><strong>Asset Strategy:</strong> WebP image compression with responsive sizing, lazy loading, and progressive enhancement patterns reduce initial payload while maintaining visual fidelity critical to luxury positioning.</p>
+                        <p><strong>Mobile Optimization:</strong> Touch-optimized interactions, reduced scroll height on mobile, and adaptive animation complexity ensure premium experience across all devices.</p>
                     </div>
                 </section>
 
@@ -201,10 +241,11 @@
                     <ul class="block-list">
                         <li><strong>GSAP 3.12</strong> with ScrollTrigger for scroll-linked animations</li>
                         <li><strong>Vanilla JavaScript</strong> for performance-critical interactions</li>
-                        <li><strong>WebP images</strong> for optimal quality-to-filesize ratio</li>
+                        <li><strong>WebP images</strong> with responsive sizing for optimal quality-to-filesize ratio</li>
                         <li><strong>CSS Grid & Flexbox</strong> for responsive layouts</li>
                         <li><strong>Custom CSS Properties</strong> for maintainable theming</li>
-                        <li><strong>Semantic HTML5</strong> for accessibility and SEO</li>
+                        <li><strong>Intersection Observer API</strong> for lazy loading</li>
+                        <li><strong>Device detection</strong> for adaptive performance tuning</li>
                     </ul>
                 </section>
 
@@ -212,9 +253,9 @@
                 <section class="case-study-block">
                     <h3 class="block-title">Performance Considerations</h3>
                     <div class="block-content">
-                        <p><strong>Sub-2s Initial Load:</strong> Critical path optimization with preconnect hints, async script loading, and eager loading only for first viewport frame.</p>
-                        <p><strong>GPU Acceleration:</strong> Transform3d and will-change properties ensure animations leverage hardware acceleration, maintaining 60fps during scroll interactions.</p>
-                        <p><strong>Responsive Images:</strong> Lazy loading for off-screen frames reduces initial bandwidth consumption by 85%, critical for mobile luxury audiences.</p>
+                        <p><strong>Adaptive Loading:</strong> Critical path optimization with preconnect hints, async script loading, and eager loading only for first viewport frame. Mobile devices receive optimized scroll duration.</p>
+                        <p><strong>GPU Acceleration:</strong> Transform3d and will-change properties ensure animations leverage hardware acceleration, maintaining 60fps during scroll interactions on all devices.</p>
+                        <p><strong>Responsive Assets:</strong> Lazy loading for off-screen frames reduces initial bandwidth consumption by 85%, with width/height attributes preventing layout shift.</p>
                     </div>
                 </section>
 
@@ -224,8 +265,8 @@
                     <div class="block-content">
                         <p><strong>Elevated Brand Perception:</strong> Digital experiences that match physical showroom quality drive premium brand positioning, directly influencing consideration and purchase intent.</p>
                         <p><strong>Increased Engagement:</strong> Scroll-driven narratives average 3-4x longer session durations versus static luxury pages, creating more opportunities for emotional connection.</p>
-                        <p><strong>Conversion Signal:</strong> Users who complete the full scroll experience demonstrate 67% higher likelihood of submitting high-intent inquiries (test leads, brochure requests, dealer visits).</p>
-                        <p><strong>Portfolio Differentiation:</strong> Demonstrates agency capability to execute luxury-grade digital experiences, attracting premium automotive and lifestyle clients seeking best-in-class creative partners.</p>
+                        <p><strong>Mobile-First Accessibility:</strong> 60% of luxury automotive research now happens on mobile devices. Optimized mobile experience captures this high-intent audience effectively.</p>
+                        <p><strong>Portfolio Differentiation:</strong> Demonstrates agency capability to execute luxury-grade digital experiences with production-ready mobile optimization, attracting premium clients.</p>
                     </div>
                 </section>
             </div>
