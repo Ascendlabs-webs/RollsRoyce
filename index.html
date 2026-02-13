@@ -85,28 +85,36 @@
         <!-- Visual Frames Container -->
         <div class="frame-container" role="img" aria-label="Animated vehicle showcase">
             <div class="frame" data-frame="0">
-                <img src="frame01.webp" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager" width="1920" height="1080">
+                <img src="frame01.webp" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Black Badge...</div>
             </div>
             <div class="frame" data-frame="1">
-                <img src="frame02.webp" alt="Rolls-Royce in motion, capturing dynamic performance" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame02.webp" alt="Rolls-Royce in motion, capturing dynamic performance" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Power...</div>
             </div>
             <div class="frame" data-frame="2">
-                <img src="frame03.webp" alt="Iconic Spirit of Ecstasy hood ornament detail shot" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame03.webp" alt="Iconic Spirit of Ecstasy hood ornament detail shot" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Spirit of Ecstasy...</div>
             </div>
             <div class="frame" data-frame="3">
-                <img src="frame04.webp" alt="Rolls-Royce Phantom showcasing elegant profile design" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame04.webp" alt="Rolls-Royce Phantom showcasing elegant profile design" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Phantom...</div>
             </div>
             <div class="frame" data-frame="4">
-                <img src="frame05.webp" alt="High-speed motion blur emphasizing velocity and power" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame05.webp" alt="High-speed motion blur emphasizing velocity and power" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Velocity...</div>
             </div>
             <div class="frame" data-frame="5">
-                <img src="frame06.webp" alt="Bespoke interior craftsmanship and luxury materials" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame06.webp" alt="Bespoke interior craftsmanship and luxury materials" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Interior...</div>
             </div>
             <div class="frame" data-frame="6">
-                <img src="frame07.webp" alt="Rolls-Royce Cullinan demonstrating commanding presence" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame07.webp" alt="Rolls-Royce Cullinan demonstrating commanding presence" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Cullinan...</div>
             </div>
             <div class="frame" data-frame="7">
-                <img src="frame08.webp" alt="Rear view showcasing distinctive design language" class="frame-image" loading="lazy" width="1920" height="1080">
+                <img src="frame08.webp" alt="Rear view showcasing distinctive design language" class="frame-image" loading="lazy" width="1920" height="1080" onerror="this.style.display='none'; this.parentElement.classList.add('image-error');">
+                <div class="image-fallback">Loading Presence...</div>
             </div>
         </div>
 
@@ -175,6 +183,56 @@
         </div>
     </section>
     </div>
+
+    <!-- 3D Model Showcase -->
+    <section class="model-3d-section" aria-label="Interactive 3D vehicle showcase">
+        <div class="model-3d-container">
+            <div class="model-3d-header">
+                <span class="model-3d-label">Interactive Experience</span>
+                <h2 class="model-3d-title">Explore in 3D</h2>
+                <p class="model-3d-subtitle">Drag to rotate • Scroll to zoom • Discover every angle</p>
+            </div>
+            <div id="canvas-container" class="canvas-container">
+                <canvas id="model-canvas"></canvas>
+                <div class="model-controls">
+                    <button class="model-control-btn" id="resetView" aria-label="Reset view">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M3 21v-5h5"/>
+                        </svg>
+                        Reset
+                    </button>
+                    <button class="model-control-btn" id="autoRotate" aria-label="Toggle auto-rotate">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M6 12H1m6 0h6m6 0h5"/>
+                        </svg>
+                        Auto
+                    </button>
+                </div>
+                <div class="model-loading" id="modelLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading 3D Model...</p>
+                </div>
+            </div>
+            <div class="model-3d-features">
+                <div class="feature-item">
+                    <div class="feature-icon">🎨</div>
+                    <p class="feature-text">Ultra-detailed 3D model</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <p class="feature-text">360° rotation</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔍</div>
+                    <p class="feature-text">Zoom & explore</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Transition Section -->
     <section class="transition-section" aria-label="Experience transition">
@@ -285,6 +343,9 @@
     </article>
 
     <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
     <script src="script.js" defer></script>

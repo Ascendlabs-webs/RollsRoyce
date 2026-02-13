@@ -591,6 +591,24 @@ function initCaseStudyAnimations() {
 // Initialize
 let cinematicScroll;
 let heroIntro;
+let model3DViewer;
+
+// Image verification function
+function checkImages() {
+    const images = document.querySelectorAll('.frame-image');
+    let loadedCount = 0;
+    
+    images.forEach((img, index) => {
+        img.addEventListener('load', () => {
+            loadedCount++;
+            console.log(`✅ Image ${index + 1}/8 loaded: ${img.src.split('/').pop()}`);
+        });
+        
+        img.addEventListener('error', () => {
+            console.warn(`❌ Image ${index + 1}/8 failed to load: ${img.src.split('/').pop()}`);
+        });
+    });
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎬 Initializing Rolls-Royce Experience...');
@@ -614,6 +632,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Viewport-pin set to visible');
     }
 
+    // Check images
+    checkImages();
+
     // Initialize preloader
     const preloader = new Preloader();
     await preloader.init();
@@ -630,6 +651,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize cinematic scroll
     cinematicScroll = new CinematicScroll();
     console.log('✅ Cinematic scroll initialized');
+
+    // Initialize 3D model viewer (with delay to ensure libs loaded)
+    setTimeout(() => {
+        model3DViewer = new Model3DViewer();
+        console.log('✅ 3D model viewer initialized');
+    }, 500);
 
     // Initialize case study animations
     setTimeout(() => {
@@ -676,3 +703,274 @@ document.addEventListener('visibilitychange', () => {
         }, 100);
     }
 });
+
+// 3D Model Viewer
+class Model3DViewer {
+    constructor() {
+        this.canvas = document.getElementById('model-canvas');
+        this.container = document.getElementById('canvas-container');
+        this.loading = document.getElementById('modelLoading');
+        
+        if (!this.canvas || !this.container) return;
+        
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.model = null;
+        this.autoRotateEnabled = false;
+        
+        this.init();
+    }
+
+    init() {
+        // Wait for Three.js to load
+        const checkThree = setInterval(() => {
+            if (typeof THREE !== 'undefined') {
+                clearInterval(checkThree);
+                this.setupScene();
+                this.loadModel();
+                this.setupControls();
+                this.setupEventListeners();
+                this.animate();
+            }
+        }, 100);
+    }
+
+    setupScene() {
+        // Scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x0a0a0a);
+
+        // Camera
+        const aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+        this.camera.position.set(5, 2, 5);
+
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: this.canvas,
+            antialias: true,
+            alpha: true
+        });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.2;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight1.position.set(5, 10, 7);
+        directionalLight1.castShadow = true;
+        this.scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xD4AF37, 0.3);
+        directionalLight2.position.set(-5, 5, -5);
+        this.scene.add(directionalLight2);
+
+        const rimLight = new THREE.DirectionalLight(0xD4AF37, 0.5);
+        rimLight.position.set(0, 5, -10);
+        this.scene.add(rimLight);
+
+        // Ground plane (optional)
+        const groundGeometry = new THREE.PlaneGeometry(50, 50);
+        const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.5;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+    }
+
+    loadModel() {
+        if (typeof THREE.GLTFLoader === 'undefined') {
+            console.error('GLTFLoader not available');
+            this.showError('3D loader not available');
+            return;
+        }
+
+        const loader = new THREE.GLTFLoader();
+        
+        loader.load(
+            'Untitled.glb',
+            (gltf) => {
+                this.model = gltf.scene;
+                
+                // Center and scale model
+                const box = new THREE.Box3().setFromObject(this.model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 3 / maxDim;
+                this.model.scale.setScalar(scale);
+                
+                this.model.position.x = -center.x * scale;
+                this.model.position.y = -center.y * scale;
+                this.model.position.z = -center.z * scale;
+                
+                // Enable shadows
+                this.model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        
+                        // Enhance materials
+                        if (child.material) {
+                            child.material.metalness = 0.9;
+                            child.material.roughness = 0.2;
+                        }
+                    }
+                });
+                
+                this.scene.add(this.model);
+                this.hideLoading();
+                
+                console.log('✅ 3D model loaded successfully');
+            },
+            (progress) => {
+                const percent = (progress.loaded / progress.total) * 100;
+                console.log(`Loading 3D model: ${percent.toFixed(0)}%`);
+            },
+            (error) => {
+                console.error('Error loading 3D model:', error);
+                this.showError('Failed to load 3D model');
+            }
+        );
+    }
+
+    setupControls() {
+        if (typeof THREE.OrbitControls === 'undefined') {
+            console.warn('OrbitControls not available');
+            return;
+        }
+
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.minDistance = 2;
+        this.controls.maxDistance = 15;
+        this.controls.maxPolarAngle = Math.PI / 1.8;
+        this.controls.autoRotate = false;
+        this.controls.autoRotateSpeed = 1.0;
+    }
+
+    setupEventListeners() {
+        // Reset button
+        const resetBtn = document.getElementById('resetView');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this.resetView());
+        }
+
+        // Auto-rotate button
+        const autoRotateBtn = document.getElementById('autoRotate');
+        if (autoRotateBtn) {
+            autoRotateBtn.addEventListener('click', () => this.toggleAutoRotate());
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => this.onWindowResize(), { passive: true });
+    }
+
+    resetView() {
+        if (this.controls) {
+            gsap.to(this.camera.position, {
+                x: 5,
+                y: 2,
+                z: 5,
+                duration: 1.5,
+                ease: 'power2.inOut',
+                onUpdate: () => {
+                    this.camera.lookAt(0, 0, 0);
+                }
+            });
+            this.controls.reset();
+        }
+    }
+
+    toggleAutoRotate() {
+        if (!this.controls) return;
+        
+        this.autoRotateEnabled = !this.autoRotateEnabled;
+        this.controls.autoRotate = this.autoRotateEnabled;
+        
+        const btn = document.getElementById('autoRotate');
+        if (btn) {
+            btn.classList.toggle('active', this.autoRotateEnabled);
+        }
+    }
+
+    onWindowResize() {
+        if (!this.camera || !this.renderer || !this.container) return;
+        
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        if (this.controls) {
+            this.controls.update();
+        }
+        
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
+    }
+
+    hideLoading() {
+        if (this.loading) {
+            gsap.to(this.loading, {
+                opacity: 0,
+                duration: 0.5,
+                onComplete: () => {
+                    this.loading.classList.add('hidden');
+                }
+            });
+        }
+    }
+
+    showError(message) {
+        if (this.loading) {
+            const loadingText = this.loading.querySelector('p');
+            if (loadingText) {
+                loadingText.textContent = message;
+            }
+        }
+    }
+}
+
+// Export API
+window.RollsRoyceCinematic = {
+    refresh: () => {
+        ScrollTrigger.refresh();
+        console.log('ScrollTrigger refreshed');
+    },
+    destroy: () => {
+        if (cinematicScroll) {
+            cinematicScroll.destroy();
+        }
+    },
+    rebuild: () => {
+        if (cinematicScroll) {
+            cinematicScroll.destroy();
+        }
+        cinematicScroll = new CinematicScroll();
+    },
+    deviceInfo: () => DeviceConfig,
+    reset3DView: () => {
+        if (model3DViewer) {
+            model3DViewer.resetView();
+        }
+    }
+};
