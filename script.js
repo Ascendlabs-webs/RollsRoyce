@@ -117,6 +117,7 @@ class HeroIntro {
     constructor() {
         this.heroSection = document.querySelector('.hero-intro');
         this.scrollHint = document.querySelector('.scroll-hint');
+        this.experienceWrapper = document.querySelector('.experience-wrapper');
         this.init();
     }
 
@@ -125,17 +126,21 @@ class HeroIntro {
             this.scrollHint.addEventListener('click', () => this.scrollToExperience());
         }
 
-        // Fade out hero on scroll
-        if (this.heroSection) {
+        // Fade out hero on scroll with proper trigger
+        if (this.heroSection && this.experienceWrapper) {
             gsap.to(this.heroSection, {
                 scrollTrigger: {
-                    trigger: this.heroSection,
+                    trigger: this.experienceWrapper,
                     start: 'top top',
-                    end: '80% top',
-                    scrub: true
+                    end: '100vh top',
+                    scrub: 0.5,
+                    onEnter: () => {
+                        // Ensure viewport-pin is visible
+                        document.querySelector('.viewport-pin').style.opacity = '1';
+                    }
                 },
                 opacity: 0,
-                scale: 0.95,
+                scale: 0.98,
                 ease: 'power2.inOut'
             });
         }
@@ -144,7 +149,7 @@ class HeroIntro {
     scrollToExperience() {
         const heroHeight = this.heroSection.offsetHeight;
         window.scrollTo({
-            top: heroHeight,
+            top: heroHeight + 10,
             behavior: 'smooth'
         });
     }
@@ -396,12 +401,19 @@ class CinematicScroll {
             start: 'top top',
             end: 'bottom bottom',
             pin: this.viewportPin,
+            pinSpacing: false,
             scrub: CONFIG.scrub,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             animation: this.masterTimeline,
             onUpdate: (self) => {
                 this.masterTimeline.progress(self.progress);
+            },
+            onEnter: () => {
+                // Ensure viewport is visible
+                if (this.viewportPin) {
+                    this.viewportPin.style.opacity = '1';
+                }
             }
         });
     }
@@ -581,6 +593,7 @@ let cinematicScroll;
 let heroIntro;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🎬 Initializing Rolls-Royce Experience...');
     console.log('Device Config:', {
         isMobile: DeviceConfig.isMobile,
         isTablet: DeviceConfig.isTablet,
@@ -594,9 +607,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Fix mobile viewport
     fixMobileViewport();
 
+    // Ensure viewport-pin is visible
+    const viewportPin = document.querySelector('.viewport-pin');
+    if (viewportPin) {
+        viewportPin.style.opacity = '1';
+        console.log('✅ Viewport-pin set to visible');
+    }
+
     // Initialize preloader
     const preloader = new Preloader();
     await preloader.init();
+    console.log('✅ Preloader complete');
 
     // Initialize components
     heroIntro = new HeroIntro();
@@ -604,14 +625,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupLazyLoading();
     setupTouchGestures();
     optimizePerformance();
+    console.log('✅ Components initialized');
 
     // Initialize cinematic scroll
     cinematicScroll = new CinematicScroll();
+    console.log('✅ Cinematic scroll initialized');
 
     // Initialize case study animations
     setTimeout(() => {
         initCaseStudyAnimations();
+        console.log('✅ Case study animations ready');
     }, 100);
+
+    console.log('🚀 Experience ready!');
 });
 
 // Cleanup
