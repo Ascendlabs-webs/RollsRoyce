@@ -1,4 +1,4 @@
-const hasGSAP = typeof window.gsap !== 'undefined';
+﻿const hasGSAP = typeof window.gsap !== 'undefined';
 const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined';
 const hasTHREE = typeof window.THREE !== 'undefined';
 const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -6,17 +6,6 @@ const isMobile = window.matchMedia('(max-width: 768px)').matches;
 if (hasGSAP && hasScrollTrigger) {
     gsap.registerPlugin(ScrollTrigger);
 }
-
-const CONFIG = {
-    frameCount: 8,
-    scrollDuration: isMobile ? 260 : 400,
-    transitionOverlap: 0.15,
-    scaleStart: isMobile ? 1.1 : 1.15,
-    scaleEnd: 1.0,
-    parallaxDepth: isMobile ? 16 : 30,
-    textStagger: isMobile ? 0.06 : 0.08,
-    scrub: isMobile ? 0.9 : 1.2
-};
 
 class Preloader {
     constructor() {
@@ -110,173 +99,302 @@ class ScrollProgress {
     }
 }
 
-class CinematicScroll {
-    constructor() {
-        this.frames = gsap.utils.toArray('.frame');
-        this.textFrames = gsap.utils.toArray('.text-frame');
-        this.scrollSpacer = document.querySelector('.scroll-spacer');
-        this.viewportPin = document.querySelector('.viewport-pin');
-        this.masterTimeline = gsap.timeline();
+// Replaces frame-to-frame scroll transitions with a single premium typography reveal.
+class TypographyReveal {
+    constructor({ autoObserve = true } = {}) {
+        this.revealRoot = document.querySelector('.typography-reveal');
+        this.headline = this.revealRoot?.querySelector('[data-typography-headline]');
+        this.letterDelay = 0.05;
+        this.letterDuration = 0.85;
+        this.hasAnimated = false;
+        this.hasQueuedReveal = false;
+        this.observer = null;
+        this.autoObserve = autoObserve;
 
-        if (!this.scrollSpacer || !this.viewportPin || this.frames.length === 0 || this.textFrames.length === 0) {
+        if (!this.revealRoot || !this.headline) {
             return;
         }
 
-        this.setupScrollSpacer();
-        this.buildMasterTimeline();
-        this.setupScrollTrigger();
+        this.splitHeadlineIntoSpans();
+        if (this.autoObserve) this.setupRevealObserver();
     }
 
-    setupScrollSpacer() {
-        const totalHeight = CONFIG.scrollDuration;
-        this.scrollSpacer.style.height = `${totalHeight}vh`;
+    splitHeadlineIntoSpans() {
+        const headlineText = (this.headline.textContent || '').trim();
+        if (!headlineText) return;
+
+        const fragment = document.createDocumentFragment();
+        let letterIndex = 0;
+
+        [...headlineText].forEach((char) => {
+            if (char === ' ') {
+                const space = document.createElement('span');
+                space.className = 'typography-space';
+                space.setAttribute('aria-hidden', 'true');
+                space.textContent = '\u00A0';
+                fragment.appendChild(space);
+                return;
+            }
+
+            const letter = document.createElement('span');
+            letter.className = 'typography-letter';
+            letter.setAttribute('aria-hidden', 'true');
+            letter.style.setProperty('--char-delay', `${(letterIndex * this.letterDelay).toFixed(2)}s`);
+            letter.textContent = char;
+            fragment.appendChild(letter);
+            letterIndex++;
+        });
+
+        this.headline.textContent = '';
+        this.headline.appendChild(fragment);
+        this.headline.setAttribute('aria-label', headlineText);
+
+        const headlineDuration = ((Math.max(letterIndex - 1, 0) * this.letterDelay) + this.letterDuration).toFixed(2);
+        this.revealRoot.style.setProperty('--headline-duration', `${headlineDuration}s`);
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.revealRoot.classList.add('is-visible');
+            this.hasAnimated = true;
+        }
     }
 
-    buildMasterTimeline() {
-        const frameDuration = 100 / CONFIG.frameCount;
-        const transitionDuration = frameDuration * (1 + CONFIG.transitionOverlap);
+    reveal() {
+        if (this.hasAnimated || this.hasQueuedReveal) return;
+        this.hasQueuedReveal = true;
 
-        this.frames.forEach((frame, index) => {
-            const image = frame.querySelector('.frame-image');
-            const textFrame = this.textFrames[index];
-            if (!image || !textFrame) return;
-
-            const titleLines = textFrame.querySelectorAll('.title-line');
-            const subtitle = textFrame.querySelector('.subtitle');
-
-            const startTime = index * frameDuration;
-            const isFirst = index === 0;
-            const isLast = index === this.frames.length - 1;
-
-            if (!isFirst) {
-                this.masterTimeline.fromTo(
-                    frame,
-                    { opacity: 0 },
-                    {
-                        opacity: 1,
-                        duration: transitionDuration * 0.4,
-                        ease: 'power2.inOut'
-                    },
-                    startTime
-                );
-            }
-
-            if (!isLast) {
-                this.masterTimeline.to(
-                    frame,
-                    {
-                        opacity: 0,
-                        duration: transitionDuration * 0.4,
-                        ease: 'power2.inOut'
-                    },
-                    startTime + frameDuration * 0.6
-                );
-            }
-
-            this.masterTimeline.fromTo(
-                image,
-                {
-                    scale: CONFIG.scaleStart
-                },
-                {
-                    scale: CONFIG.scaleEnd,
-                    duration: transitionDuration,
-                    ease: 'power1.inOut'
-                },
-                startTime
-            );
-
-            this.masterTimeline.fromTo(
-                image,
-                {
-                    y: 0
-                },
-                {
-                    y: -CONFIG.parallaxDepth,
-                    duration: frameDuration,
-                    ease: 'none'
-                },
-                startTime
-            );
-
-            if (!isFirst) {
-                this.masterTimeline.fromTo(
-                    textFrame,
-                    { opacity: 0 },
-                    {
-                        opacity: 1,
-                        duration: transitionDuration * 0.3,
-                        ease: 'power2.out'
-                    },
-                    startTime + transitionDuration * 0.1
-                );
-
-                this.masterTimeline.fromTo(
-                    titleLines,
-                    {
-                        y: 20,
-                        opacity: 0
-                    },
-                    {
-                        y: 0,
-                        opacity: 1,
-                        duration: 0.8,
-                        stagger: CONFIG.textStagger,
-                        ease: 'power3.out'
-                    },
-                    startTime + transitionDuration * 0.15
-                );
-
-                if (subtitle) {
-                    this.masterTimeline.fromTo(
-                        subtitle,
-                        {
-                            y: 15,
-                            opacity: 0
-                        },
-                        {
-                            y: 0,
-                            opacity: 1,
-                            duration: 0.8,
-                            ease: 'power3.out'
-                        },
-                        startTime + transitionDuration * 0.25
-                    );
-                }
-            }
-
-            if (!isLast) {
-                this.masterTimeline.to(
-                    textFrame,
-                    {
-                        opacity: 0,
-                        duration: transitionDuration * 0.25,
-                        ease: 'power2.in'
-                    },
-                    startTime + frameDuration * 0.65
-                );
-            }
+        // Double RAF guarantees initial styles are painted before toggling reveal.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                this.revealRoot.classList.add('is-visible');
+                this.hasAnimated = true;
+                this.hasQueuedReveal = false;
+                this.destroy();
+            });
         });
     }
 
-    setupScrollTrigger() {
-        ScrollTrigger.create({
-            trigger: this.scrollSpacer,
-            start: 'top top',
-            end: 'bottom bottom',
-            scrub: CONFIG.scrub,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-            animation: this.masterTimeline,
-            onUpdate: (self) => {
-                this.masterTimeline.progress(self.progress);
-            }
+    setupRevealObserver() {
+        if (this.hasAnimated) return;
+
+        if (!('IntersectionObserver' in window)) {
+            this.reveal();
+            return;
+        }
+
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting || this.hasAnimated) return;
+
+                this.reveal();
+            });
+        }, {
+            threshold: 0.45
         });
+
+        this.observer.observe(this.revealRoot);
     }
 
     destroy() {
-        this.masterTimeline.kill();
-        ScrollTrigger.getAll().forEach((st) => st.kill());
+        if (!this.observer) return;
+        this.observer.disconnect();
+        this.observer = null;
+    }
+}
+
+// Drives the hero image through all extracted JPG frames based on scroll progress.
+class HeroFrameSequence {
+    constructor({ typographyReveal } = {}) {
+        this.typographyReveal = typographyReveal || null;
+        this.imageElement = document.querySelector('.frame-image');
+        this.scrollSpacer = document.querySelector('.scroll-spacer');
+
+        this.sequenceFolder = 'ezgif-3e8f305767bab817-jpg';
+        this.frameCount = 300;
+        this.currentTargetFrame = 0;
+        this.lastRenderedFrame = -1;
+        this.renderRaf = 0;
+        this.backgroundWarmupStarted = false;
+
+        this.loadedFrames = new Set([0]);
+        this.loadingFrames = new Set();
+        this.queuedFrames = new Set();
+        this.loadQueue = [];
+        this.activeLoads = 0;
+        this.maxConcurrentLoads = isMobile ? 3 : 5;
+        this.prefetchRadius = isMobile ? 4 : 7;
+        this.revealThreshold = 0.12;
+
+        this.handleScroll = this.handleScroll.bind(this);
+        this.handleResize = this.handleResize.bind(this);
+
+        if (!this.imageElement || !this.scrollSpacer) return;
+
+        this.setupScrollDistance();
+        this.renderFrame(0);
+        this.bindEvents();
+        this.enqueueFrame(0, true);
+        this.updateFromScroll();
+    }
+
+    setupScrollDistance() {
+        // Long spacer gives enough precision for 300-frame interpolation.
+        const sequenceDistanceVh = isMobile ? 420 : 560;
+        this.scrollSpacer.style.height = `${sequenceDistanceVh}vh`;
+    }
+
+    getFramePath(index) {
+        const padded = String(index + 1).padStart(3, '0');
+        return `${this.sequenceFolder}/ezgif-frame-${padded}.jpg`;
+    }
+
+    getScrollProgress() {
+        const maxScrollable = Math.max(this.scrollSpacer.offsetHeight - window.innerHeight, 1);
+        return Math.min(Math.max(window.scrollY / maxScrollable, 0), 1);
+    }
+
+    bindEvents() {
+        window.addEventListener('scroll', this.handleScroll, { passive: true });
+        window.addEventListener('resize', this.handleResize, { passive: true });
+    }
+
+    handleScroll() {
+        if (this.renderRaf) return;
+        this.renderRaf = requestAnimationFrame(() => {
+            this.renderRaf = 0;
+            this.updateFromScroll();
+        });
+    }
+
+    handleResize() {
+        this.setupScrollDistance();
+        this.updateFromScroll();
+    }
+
+    updateFromScroll() {
+        const progress = this.getScrollProgress();
+        const targetFrame = Math.round(progress * (this.frameCount - 1));
+        this.currentTargetFrame = targetFrame;
+
+        this.queuePriorityFrames(targetFrame);
+        this.renderBestAvailable(targetFrame);
+
+        if (progress >= this.revealThreshold && this.typographyReveal) {
+            this.typographyReveal.reveal();
+        }
+
+        if (!this.backgroundWarmupStarted && progress > 0.02) {
+            this.backgroundWarmupStarted = true;
+            this.startBackgroundWarmup();
+        }
+    }
+
+    queuePriorityFrames(targetFrame) {
+        this.enqueueFrame(targetFrame, true);
+        for (let step = 1; step <= this.prefetchRadius; step++) {
+            this.enqueueFrame(targetFrame + step, true);
+            this.enqueueFrame(targetFrame - step, true);
+        }
+    }
+
+    startBackgroundWarmup() {
+        let index = 0;
+        const queueNextChunk = () => {
+            let queued = 0;
+            while (index < this.frameCount && queued < 24) {
+                this.enqueueFrame(index, false);
+                index++;
+                queued++;
+            }
+            if (index < this.frameCount) {
+                setTimeout(queueNextChunk, 140);
+            }
+        };
+        queueNextChunk();
+    }
+
+    enqueueFrame(index, highPriority) {
+        if (index < 0 || index >= this.frameCount) return;
+        if (this.loadedFrames.has(index) || this.loadingFrames.has(index) || this.queuedFrames.has(index)) return;
+
+        this.queuedFrames.add(index);
+        if (highPriority) {
+            this.loadQueue.unshift(index);
+        } else {
+            this.loadQueue.push(index);
+        }
+        this.processQueue();
+    }
+
+    processQueue() {
+        while (this.activeLoads < this.maxConcurrentLoads && this.loadQueue.length > 0) {
+            const index = this.loadQueue.shift();
+            if (typeof index !== 'number') continue;
+
+            this.queuedFrames.delete(index);
+            if (this.loadedFrames.has(index) || this.loadingFrames.has(index)) continue;
+
+            this.loadingFrames.add(index);
+            this.activeLoads++;
+
+            const image = new Image();
+            image.decoding = 'async';
+            image.src = this.getFramePath(index);
+
+            const finishLoad = () => {
+                this.loadingFrames.delete(index);
+                this.loadedFrames.add(index);
+                this.activeLoads = Math.max(0, this.activeLoads - 1);
+
+                if (index === this.currentTargetFrame) {
+                    this.renderFrame(index);
+                }
+                this.processQueue();
+            };
+
+            image.onload = finishLoad;
+            image.onerror = finishLoad;
+        }
+    }
+
+    renderBestAvailable(targetFrame) {
+        if (this.loadedFrames.has(targetFrame)) {
+            this.renderFrame(targetFrame);
+            return;
+        }
+
+        let nearestBack = targetFrame;
+        while (nearestBack >= 0 && !this.loadedFrames.has(nearestBack)) {
+            nearestBack--;
+        }
+        if (nearestBack >= 0) {
+            this.renderFrame(nearestBack);
+            return;
+        }
+
+        let nearestForward = targetFrame + 1;
+        while (nearestForward < this.frameCount && !this.loadedFrames.has(nearestForward)) {
+            nearestForward++;
+        }
+        if (nearestForward < this.frameCount) {
+            this.renderFrame(nearestForward);
+        }
+    }
+
+    renderFrame(index) {
+        if (index === this.lastRenderedFrame) return;
+        this.imageElement.src = this.getFramePath(index);
+        this.lastRenderedFrame = index;
+    }
+
+    destroy() {
+        window.removeEventListener('scroll', this.handleScroll);
+        window.removeEventListener('resize', this.handleResize);
+        if (this.renderRaf) {
+            cancelAnimationFrame(this.renderRaf);
+            this.renderRaf = 0;
+        }
+        this.loadQueue.length = 0;
+        this.queuedFrames.clear();
     }
 }
 
@@ -478,20 +596,13 @@ function initCaseStudyAnimations() {
     });
 }
 
-let cinematicScroll;
+let typographyReveal;
+let heroFrameSequence;
 let model3DViewer;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Keep preload flow, then start one-time hero typography reveal.
     document.body.style.overflow = 'hidden';
-
-    if (!hasGSAP || !hasScrollTrigger) {
-        const preloader = document.querySelector('.preloader');
-        if (preloader) preloader.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-        new ScrollProgress();
-        model3DViewer = new Model3DViewer();
-        return;
-    }
 
     const preloader = new Preloader();
     await preloader.init();
@@ -500,13 +611,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupLazyLoading();
     optimizePerformance();
 
-    cinematicScroll = new CinematicScroll();
-    initCaseStudyAnimations();
+    typographyReveal = new TypographyReveal({ autoObserve: false });
+    heroFrameSequence = new HeroFrameSequence({ typographyReveal });
+    if (hasGSAP && hasScrollTrigger) initCaseStudyAnimations();
     model3DViewer = new Model3DViewer();
 });
 
 window.addEventListener('beforeunload', () => {
-    if (cinematicScroll) cinematicScroll.destroy();
+    if (typographyReveal) typographyReveal.destroy();
+    if (heroFrameSequence) heroFrameSequence.destroy();
     if (hasGSAP) gsap.killTweensOf('*');
 });
 
@@ -515,11 +628,15 @@ window.RollsRoyceCinematic = {
         if (hasScrollTrigger) ScrollTrigger.refresh();
     },
     destroy: () => {
-        if (cinematicScroll) cinematicScroll.destroy();
+        if (typographyReveal) typographyReveal.destroy();
+        if (heroFrameSequence) heroFrameSequence.destroy();
     },
     rebuild: () => {
-        if (cinematicScroll) cinematicScroll.destroy();
-        if (hasGSAP && hasScrollTrigger) cinematicScroll = new CinematicScroll();
+        if (typographyReveal) typographyReveal.destroy();
+        if (heroFrameSequence) heroFrameSequence.destroy();
+        typographyReveal = new TypographyReveal({ autoObserve: false });
+        heroFrameSequence = new HeroFrameSequence({ typographyReveal });
+        if (hasScrollTrigger) ScrollTrigger.refresh();
     }
 };
 

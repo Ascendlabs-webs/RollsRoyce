@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -49,86 +49,17 @@
     <section class="viewport-pin" aria-label="Interactive luxury automotive showcase">
         <div class="vignette" aria-hidden="true"></div>
 
-        <div class="frame-container" role="img" aria-label="Animated vehicle showcase">
-            <div class="frame" data-frame="0">
-                <img src="frame01.webp" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager">
-            </div>
-            <div class="frame" data-frame="1">
-                <img src="frame02.webp" alt="Rolls-Royce in motion, capturing dynamic performance" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="2">
-                <img src="frame03.webp" alt="Iconic Spirit of Ecstasy hood ornament detail shot" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="3">
-                <img src="frame04.webp" alt="Rolls-Royce Phantom showcasing elegant profile design" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="4">
-                <img src="frame05.webp" alt="High-speed motion blur emphasizing velocity and power" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="5">
-                <img src="frame06.webp" alt="Bespoke interior craftsmanship and luxury materials" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="6">
-                <img src="frame07.webp" alt="Rolls-Royce Cullinan demonstrating commanding presence" class="frame-image" loading="lazy">
-            </div>
-            <div class="frame" data-frame="7">
-                <img src="frame08.webp" alt="Rear view showcasing distinctive design language" class="frame-image" loading="lazy">
+        <!-- Hero image element acts as the render target for the 300-frame scroll sequence. -->
+        <div class="frame-container" role="img" aria-label="Rolls-Royce Black Badge hero image">
+            <div class="frame">
+                <img src="ezgif-3e8f305767bab817-jpg/ezgif-frame-001.jpg" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager">
             </div>
         </div>
 
-        <header class="text-container" role="banner">
-            <div class="text-frame" data-text="0">
-                <h1 class="title">
-                    <span class="title-line">BLACK</span>
-                    <span class="title-line">BADGE</span>
-                </h1>
-                <p class="subtitle">The dark side of luxury</p>
-            </div>
-            <div class="text-frame" data-text="1">
-                <h1 class="title">
-                    <span class="title-line">POWER</span>
-                    <span class="title-line">UNVEILED</span>
-                </h1>
-                <p class="subtitle">Where presence meets performance</p>
-            </div>
-            <div class="text-frame" data-text="2">
-                <h1 class="title">
-                    <span class="title-line">SPIRIT OF</span>
-                    <span class="title-line">ECSTASY</span>
-                </h1>
-                <p class="subtitle">An icon reimagined</p>
-            </div>
-            <div class="text-frame" data-text="3">
-                <h1 class="title">
-                    <span class="title-line">PHANTOM</span>
-                </h1>
-                <p class="subtitle">The ultimate expression of luxury</p>
-            </div>
-            <div class="text-frame" data-text="4">
-                <h1 class="title">
-                    <span class="title-line">VELOCITY</span>
-                </h1>
-                <p class="subtitle">Motion in its purest form</p>
-            </div>
-            <div class="text-frame" data-text="5">
-                <h1 class="title">
-                    <span class="title-line">BESPOKE</span>
-                    <span class="title-line">INTERIOR</span>
-                </h1>
-                <p class="subtitle">Craftsmanship without compromise</p>
-            </div>
-            <div class="text-frame" data-text="6">
-                <h1 class="title">
-                    <span class="title-line">CULLINAN</span>
-                </h1>
-                <p class="subtitle">Effortless everywhere</p>
-            </div>
-            <div class="text-frame" data-text="7">
-                <h1 class="title">
-                    <span class="title-line">PRESENCE</span>
-                </h1>
-                <p class="subtitle">An arrival unlike any other</p>
-            </div>
+        <!-- Premium typography reveal section: letters are split and animated in script.js. -->
+        <header class="text-container typography-reveal" role="banner" data-animate-once="true">
+            <h1 class="title typography-headline" data-typography-headline>BLACK BADGE</h1>
+            <p class="subtitle typography-subtext">The dark side of luxury</p>
         </header>
     </section>
 
