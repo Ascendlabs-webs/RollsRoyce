@@ -212,45 +212,61 @@ class HeroFrameSequence {
     constructor({ typographyReveal } = {}) {
         this.typographyReveal = typographyReveal || null;
         this.imageElement = document.querySelector('.frame-image');
+        this.frameContainer = this.imageElement?.parentElement || null;
         this.scrollSpacer = document.querySelector('.scroll-spacer');
 
         this.sequenceFolder = 'ezgif-3e8f305767bab817-jpg';
         this.frameCount = 300;
-        this.performanceMode = isMobile || prefersReducedData || isSlowNetwork;
-        this.frameStride = this.performanceMode
-            ? (prefersReducedData || isSlowNetwork ? 3 : 2)
-            : 1;
-        this.scrollFrameCount = Math.ceil(this.frameCount / this.frameStride);
-        this.currentTargetFrame = 0;
-        this.lastRenderedFrame = -1;
+        this.currentTargetFrameFloat = 0;
+        this.currentRenderFrameFloat = 0;
         this.renderRaf = 0;
         this.backgroundWarmupStarted = false;
+        this.warmupTimer = 0;
+        this.hasFirstCanvasPaint = false;
 
-        this.loadedFrames = new Set([0]);
+        this.loadedFrames = new Set();
         this.failedFrames = new Set();
         this.loadingFrames = new Set();
         this.queuedFrames = new Set();
+        this.frameCache = new Map();
         this.loadQueue = [];
         this.activeLoads = 0;
-        this.maxConcurrentLoads = this.performanceMode ? 2 : 5;
-        this.prefetchRadius = this.performanceMode ? 3 : 7;
+
+        const conservativeNetwork = prefersReducedData || isSlowNetwork;
+        this.maxConcurrentLoads = conservativeNetwork ? (isMobile ? 2 : 3) : (isMobile ? 4 : 7);
+        this.prefetchRadius = conservativeNetwork ? 8 : 14;
         this.revealThreshold = 0.12;
+        this.smoothingFactor = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 1
+            : (isMobile ? 0.26 : 0.18);
+
+        this.frameCanvas = null;
+        this.ctx = null;
+        this.canvasCssWidth = 0;
+        this.canvasCssHeight = 0;
+        this.canvasRatio = 1;
+        this.fitMode = isMobile ? 'contain' : 'cover';
+        this.lastFallbackFrame = -1;
 
         this.handleScroll = this.handleScroll.bind(this);
         this.handleResize = this.handleResize.bind(this);
 
-        if (!this.imageElement || !this.scrollSpacer) return;
+        if (!this.imageElement || !this.scrollSpacer || !this.frameContainer) return;
 
+        this.setupCanvas();
         this.setupScrollDistance();
-        this.renderFrame(0);
         this.bindEvents();
-        this.enqueueFrame(0, true);
+        this.registerLoadedFrame(0, this.imageElement);
+        this.drawStaticFrame(0);
+        this.queuePriorityFrames(0);
+        this.startBackgroundWarmup();
         this.updateFromScroll();
+        this.startRenderLoop();
     }
 
     setupScrollDistance() {
-        // Long spacer gives enough precision for 300-frame interpolation.
-        const sequenceDistanceVh = this.performanceMode ? 340 : 560;
+        // Longer spacer gives more precision so frame interpolation feels cinematic.
+        const sequenceDistanceVh = isMobile ? 520 : 620;
         this.scrollSpacer.style.height = `${sequenceDistanceVh}vh`;
     }
 
@@ -264,84 +280,155 @@ class HeroFrameSequence {
         return Math.min(Math.max(window.scrollY / maxScrollable, 0), 1);
     }
 
+    setupCanvas() {
+        if (!this.frameContainer) return;
+
+        this.frameCanvas = document.createElement('canvas');
+        this.frameCanvas.className = 'frame-canvas';
+        this.frameCanvas.setAttribute('aria-hidden', 'true');
+        this.frameContainer.appendChild(this.frameCanvas);
+
+        this.ctx = this.frameCanvas.getContext('2d', {
+            alpha: false,
+            desynchronized: true
+        });
+        if (!this.ctx) {
+            this.frameCanvas.remove();
+            this.frameCanvas = null;
+            return;
+        }
+        this.resizeCanvas();
+    }
+
+    resizeCanvas() {
+        if (!this.frameCanvas || !this.ctx || !this.frameContainer) return;
+
+        const rect = this.frameContainer.getBoundingClientRect();
+        const cssWidth = Math.max(1, Math.round(rect.width));
+        const cssHeight = Math.max(1, Math.round(rect.height));
+        const maxRatio = isMobile ? 1.25 : 1.75;
+        const ratio = Math.min(window.devicePixelRatio || 1, maxRatio);
+        this.fitMode = window.innerWidth <= 768 ? 'contain' : 'cover';
+
+        this.canvasCssWidth = cssWidth;
+        this.canvasCssHeight = cssHeight;
+        this.canvasRatio = ratio;
+
+        this.frameCanvas.width = Math.max(1, Math.round(cssWidth * ratio));
+        this.frameCanvas.height = Math.max(1, Math.round(cssHeight * ratio));
+        this.frameCanvas.style.width = `${cssWidth}px`;
+        this.frameCanvas.style.height = `${cssHeight}px`;
+
+        this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        this.ctx.imageSmoothingEnabled = true;
+        if ('imageSmoothingQuality' in this.ctx) {
+            this.ctx.imageSmoothingQuality = 'high';
+        }
+    }
+
     bindEvents() {
         window.addEventListener('scroll', this.handleScroll, { passive: true });
         window.addEventListener('resize', this.handleResize, { passive: true });
     }
 
     handleScroll() {
-        if (this.renderRaf) return;
-        this.renderRaf = requestAnimationFrame(() => {
-            this.renderRaf = 0;
-            this.updateFromScroll();
-        });
+        this.updateFromScroll();
     }
 
     handleResize() {
         this.setupScrollDistance();
+        this.resizeCanvas();
+        this.render();
         this.updateFromScroll();
     }
 
     updateFromScroll() {
         const progress = this.getScrollProgress();
-        const targetSequenceFrame = Math.round(progress * (this.scrollFrameCount - 1));
-        const targetFrame = progress >= 1
-            ? this.frameCount - 1
-            : Math.min(targetSequenceFrame * this.frameStride, this.frameCount - 1);
-        this.currentTargetFrame = targetFrame;
-
-        this.queuePriorityFrames(targetFrame);
-        this.renderBestAvailable(targetFrame);
+        this.currentTargetFrameFloat = progress * (this.frameCount - 1);
+        this.queuePriorityFrames(Math.round(this.currentTargetFrameFloat));
 
         if (progress >= this.revealThreshold && this.typographyReveal) {
             this.typographyReveal.reveal();
         }
+    }
 
-        if (!this.backgroundWarmupStarted && progress > 0.02) {
-            this.backgroundWarmupStarted = true;
-            this.startBackgroundWarmup();
+    startRenderLoop() {
+        if (this.renderRaf) return;
+        const tick = () => {
+            this.renderRaf = requestAnimationFrame(tick);
+            this.render();
+        };
+        this.renderRaf = requestAnimationFrame(tick);
+    }
+
+    render() {
+        const delta = this.currentTargetFrameFloat - this.currentRenderFrameFloat;
+        if (this.smoothingFactor >= 1 || Math.abs(delta) < 0.001) {
+            this.currentRenderFrameFloat = this.currentTargetFrameFloat;
+        } else {
+            this.currentRenderFrameFloat += delta * this.smoothingFactor;
         }
+
+        const clampedFrame = Math.min(Math.max(this.currentRenderFrameFloat, 0), this.frameCount - 1);
+        const baseFrame = Math.floor(clampedFrame);
+        const nextFrame = Math.min(baseFrame + 1, this.frameCount - 1);
+        const mix = clampedFrame - baseFrame;
+
+        this.enqueueFrame(baseFrame, true);
+        if (nextFrame !== baseFrame) {
+            this.enqueueFrame(nextFrame, true);
+        }
+
+        this.renderInterpolated(baseFrame, nextFrame, mix);
     }
 
     queuePriorityFrames(targetFrame) {
         this.enqueueFrame(targetFrame, true);
         for (let step = 1; step <= this.prefetchRadius; step++) {
-            const offset = step * this.frameStride;
-            this.enqueueFrame(targetFrame + offset, true);
-            this.enqueueFrame(targetFrame - offset, true);
+            this.enqueueFrame(targetFrame + step, true);
+            this.enqueueFrame(targetFrame - step, true);
         }
     }
 
     startBackgroundWarmup() {
+        if (this.backgroundWarmupStarted) return;
+        this.backgroundWarmupStarted = true;
+
         let index = 0;
-        const queueChunkSize = this.performanceMode ? 12 : 24;
-        const queueDelay = this.performanceMode ? 180 : 120;
+        const queueChunkSize = isMobile ? 14 : 26;
+        const queueDelay = isMobile ? 90 : 60;
+
         const queueNextChunk = () => {
             let queued = 0;
             while (index < this.frameCount && queued < queueChunkSize) {
                 this.enqueueFrame(index, false);
-                index += this.frameStride;
+                index++;
                 queued++;
             }
             if (index < this.frameCount) {
-                setTimeout(queueNextChunk, queueDelay);
+                this.warmupTimer = window.setTimeout(queueNextChunk, queueDelay);
             }
         };
         queueNextChunk();
     }
 
+    registerLoadedFrame(index, image) {
+        if (index < 0 || index >= this.frameCount || !image) return;
+        this.loadedFrames.add(index);
+        this.frameCache.set(index, image);
+    }
+
     enqueueFrame(index, highPriority) {
-        const normalizedIndex = Math.round(index / this.frameStride) * this.frameStride;
-        const clampedIndex = Math.max(0, Math.min(normalizedIndex, this.frameCount - 1));
+        if (index < 0 || index >= this.frameCount) return;
 
-        if (this.loadedFrames.has(clampedIndex) || this.failedFrames.has(clampedIndex)) return;
-        if (this.loadingFrames.has(clampedIndex) || this.queuedFrames.has(clampedIndex)) return;
+        if (this.loadedFrames.has(index) || this.failedFrames.has(index)) return;
+        if (this.loadingFrames.has(index) || this.queuedFrames.has(index)) return;
 
-        this.queuedFrames.add(clampedIndex);
+        this.queuedFrames.add(index);
         if (highPriority) {
-            this.loadQueue.unshift(clampedIndex);
+            this.loadQueue.unshift(index);
         } else {
-            this.loadQueue.push(clampedIndex);
+            this.loadQueue.push(index);
         }
         this.processQueue();
     }
@@ -364,12 +451,8 @@ class HeroFrameSequence {
 
             const finishLoad = () => {
                 this.loadingFrames.delete(index);
-                this.loadedFrames.add(index);
+                this.registerLoadedFrame(index, image);
                 this.activeLoads = Math.max(0, this.activeLoads - 1);
-
-                if (index === this.currentTargetFrame) {
-                    this.renderFrame(index);
-                }
                 this.processQueue();
             };
 
@@ -389,39 +472,138 @@ class HeroFrameSequence {
         }
     }
 
-    renderBestAvailable(targetFrame) {
-        if (this.loadedFrames.has(targetFrame)) {
-            this.renderFrame(targetFrame);
+    renderInterpolated(baseFrame, nextFrame, mix) {
+        if (!this.ctx || !this.frameCanvas) {
+            this.renderFallbackFrame(mix >= 0.5 ? nextFrame : baseFrame);
             return;
         }
 
+        const baseImage = this.frameCache.get(baseFrame);
+        const nextImage = this.frameCache.get(nextFrame);
+
+        if (baseImage && nextImage && nextFrame !== baseFrame && mix > 0.001) {
+            this.drawBlendedFrames(baseImage, 1 - mix, nextImage, mix);
+            return;
+        }
+
+        if (baseImage) {
+            this.drawSingleFrame(baseImage);
+            return;
+        }
+
+        if (nextImage) {
+            this.drawSingleFrame(nextImage);
+            return;
+        }
+
+        this.renderNearestAvailable(baseFrame);
+    }
+
+    renderNearestAvailable(targetFrame) {
         let nearestBack = targetFrame;
         while (nearestBack >= 0 && !this.loadedFrames.has(nearestBack)) {
-            nearestBack -= this.frameStride;
+            nearestBack--;
         }
+
         if (nearestBack >= 0) {
-            this.renderFrame(nearestBack);
+            const image = this.frameCache.get(nearestBack);
+            if (image) this.drawSingleFrame(image);
             return;
         }
 
-        let nearestForward = targetFrame + this.frameStride;
+        let nearestForward = targetFrame + 1;
         while (nearestForward < this.frameCount && !this.loadedFrames.has(nearestForward)) {
-            nearestForward += this.frameStride;
+            nearestForward++;
         }
+
         if (nearestForward < this.frameCount) {
-            this.renderFrame(nearestForward);
+            const image = this.frameCache.get(nearestForward);
+            if (image) this.drawSingleFrame(image);
         }
     }
 
-    renderFrame(index) {
-        if (index === this.lastRenderedFrame) return;
+    drawStaticFrame(index) {
+        const image = this.frameCache.get(index);
+        if (image) this.drawSingleFrame(image);
+    }
+
+    drawSingleFrame(image) {
+        this.drawBlendedFrames(image, 1);
+    }
+
+    drawBlendedFrames(baseImage, baseAlpha, overlayImage = null, overlayAlpha = 0) {
+        if (!this.ctx || !this.frameCanvas || this.canvasCssWidth <= 0 || this.canvasCssHeight <= 0) {
+            return;
+        }
+
+        const width = this.canvasCssWidth;
+        const height = this.canvasCssHeight;
+
+        this.ctx.clearRect(0, 0, width, height);
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, width, height);
+        this.drawContainedImage(baseImage, baseAlpha);
+
+        if (overlayImage && overlayAlpha > 0.001) {
+            this.drawContainedImage(overlayImage, overlayAlpha);
+        }
+
+        if (!this.hasFirstCanvasPaint && this.imageElement) {
+            this.imageElement.classList.add('is-canvas-active');
+            this.hasFirstCanvasPaint = true;
+        }
+    }
+
+    drawContainedImage(image, alpha = 1) {
+        if (!this.ctx || !image) return;
+
+        const sourceWidth = image.naturalWidth || image.width;
+        const sourceHeight = image.naturalHeight || image.height;
+        if (!sourceWidth || !sourceHeight) return;
+
+        const frameAspect = this.canvasCssWidth / this.canvasCssHeight;
+        const imageAspect = sourceWidth / sourceHeight;
+        let drawWidth = this.canvasCssWidth;
+        let drawHeight = this.canvasCssHeight;
+        const shouldContain = this.fitMode === 'contain';
+
+        if (shouldContain) {
+            if (imageAspect > frameAspect) {
+                drawHeight = drawWidth / imageAspect;
+            } else {
+                drawWidth = drawHeight * imageAspect;
+            }
+        } else if (imageAspect > frameAspect) {
+            drawHeight = this.canvasCssHeight;
+            drawWidth = drawHeight * imageAspect;
+        } else {
+            drawWidth = this.canvasCssWidth;
+            drawHeight = drawWidth / imageAspect;
+        }
+
+        const drawX = (this.canvasCssWidth - drawWidth) / 2;
+        const drawY = (this.canvasCssHeight - drawHeight) / 2;
+
+        this.ctx.globalAlpha = Math.max(0, Math.min(alpha, 1));
+        this.ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+        this.ctx.globalAlpha = 1;
+    }
+
+    renderFallbackFrame(index) {
+        if (!this.imageElement) return;
+        if (index < 0 || index >= this.frameCount) return;
+        if (index === this.lastFallbackFrame) return;
         this.imageElement.src = this.getFramePath(index);
-        this.lastRenderedFrame = index;
+        this.lastFallbackFrame = index;
     }
 
     destroy() {
         window.removeEventListener('scroll', this.handleScroll);
         window.removeEventListener('resize', this.handleResize);
+        if (this.warmupTimer) {
+            clearTimeout(this.warmupTimer);
+            this.warmupTimer = 0;
+        }
         if (this.renderRaf) {
             cancelAnimationFrame(this.renderRaf);
             this.renderRaf = 0;
