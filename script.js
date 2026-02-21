@@ -231,21 +231,22 @@ class HeroFrameSequence {
         this.frameCache = new Map();
         this.loadQueue = [];
         this.activeLoads = 0;
-
-        const conservativeNetwork = prefersReducedData || isSlowNetwork;
-        this.maxConcurrentLoads = conservativeNetwork ? (isMobile ? 2 : 3) : (isMobile ? 4 : 7);
-        this.prefetchRadius = conservativeNetwork ? 8 : 14;
+        this.isPhoneViewport = window.innerWidth <= 768;
+        this.frameSampleStep = 1;
+        this.maxConcurrentLoads = 4;
+        this.prefetchRadius = 8;
         this.revealThreshold = 0.12;
-        this.smoothingFactor = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 1
-            : (isMobile ? 0.26 : 0.18);
+        this.smoothingFactor = 0.2;
+        this.allowFrameBlend = true;
+        this.mobileFrameIntervalMs = 0;
+        this.lastRenderTime = 0;
 
         this.frameCanvas = null;
         this.ctx = null;
         this.canvasCssWidth = 0;
         this.canvasCssHeight = 0;
         this.canvasRatio = 1;
-        this.fitMode = isMobile ? 'contain' : 'cover';
+        this.fitMode = 'cover';
         this.lastFallbackFrame = -1;
 
         this.handleScroll = this.handleScroll.bind(this);
@@ -253,6 +254,7 @@ class HeroFrameSequence {
 
         if (!this.imageElement || !this.scrollSpacer || !this.frameContainer) return;
 
+        this.updateResponsiveSettings();
         this.setupCanvas();
         this.setupScrollDistance();
         this.bindEvents();
@@ -264,9 +266,28 @@ class HeroFrameSequence {
         this.startRenderLoop();
     }
 
+    updateResponsiveSettings() {
+        this.isPhoneViewport = window.innerWidth <= 768;
+        const conservativeNetwork = prefersReducedData || isSlowNetwork;
+
+        this.frameSampleStep = this.isPhoneViewport ? (conservativeNetwork ? 3 : 2) : 1;
+        this.maxConcurrentLoads = conservativeNetwork
+            ? (this.isPhoneViewport ? 2 : 3)
+            : (this.isPhoneViewport ? 2 : 7);
+        this.prefetchRadius = this.isPhoneViewport
+            ? (conservativeNetwork ? 3 : 5)
+            : (conservativeNetwork ? 8 : 14);
+        this.smoothingFactor = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 1
+            : (this.isPhoneViewport ? 0.34 : 0.18);
+        this.allowFrameBlend = !this.isPhoneViewport;
+        this.mobileFrameIntervalMs = this.isPhoneViewport ? (1000 / 36) : 0;
+        this.fitMode = 'cover';
+    }
+
     setupScrollDistance() {
         // Longer spacer gives more precision so frame interpolation feels cinematic.
-        const sequenceDistanceVh = isMobile ? 520 : 620;
+        const sequenceDistanceVh = this.isPhoneViewport ? 430 : 620;
         this.scrollSpacer.style.height = `${sequenceDistanceVh}vh`;
     }
 
@@ -306,9 +327,8 @@ class HeroFrameSequence {
         const rect = this.frameContainer.getBoundingClientRect();
         const cssWidth = Math.max(1, Math.round(rect.width));
         const cssHeight = Math.max(1, Math.round(rect.height));
-        const maxRatio = isMobile ? 1.25 : 1.75;
+        const maxRatio = this.isPhoneViewport ? 1 : 1.75;
         const ratio = Math.min(window.devicePixelRatio || 1, maxRatio);
-        this.fitMode = window.innerWidth <= 768 ? 'contain' : 'cover';
 
         this.canvasCssWidth = cssWidth;
         this.canvasCssHeight = cssHeight;
@@ -322,7 +342,7 @@ class HeroFrameSequence {
         this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         this.ctx.imageSmoothingEnabled = true;
         if ('imageSmoothingQuality' in this.ctx) {
-            this.ctx.imageSmoothingQuality = 'high';
+            this.ctx.imageSmoothingQuality = this.isPhoneViewport ? 'medium' : 'high';
         }
     }
 
@@ -336,6 +356,7 @@ class HeroFrameSequence {
     }
 
     handleResize() {
+        this.updateResponsiveSettings();
         this.setupScrollDistance();
         this.resizeCanvas();
         this.render();
@@ -345,7 +366,7 @@ class HeroFrameSequence {
     updateFromScroll() {
         const progress = this.getScrollProgress();
         this.currentTargetFrameFloat = progress * (this.frameCount - 1);
-        this.queuePriorityFrames(Math.round(this.currentTargetFrameFloat));
+        this.queuePriorityFrames(this.normalizeFrameIndex(this.currentTargetFrameFloat));
 
         if (progress >= this.revealThreshold && this.typographyReveal) {
             this.typographyReveal.reveal();
@@ -354,8 +375,11 @@ class HeroFrameSequence {
 
     startRenderLoop() {
         if (this.renderRaf) return;
-        const tick = () => {
+        const tick = (time) => {
             this.renderRaf = requestAnimationFrame(tick);
+            if (document.hidden) return;
+            if (this.mobileFrameIntervalMs > 0 && (time - this.lastRenderTime) < this.mobileFrameIntervalMs) return;
+            this.lastRenderTime = time;
             this.render();
         };
         this.renderRaf = requestAnimationFrame(tick);
@@ -370,9 +394,11 @@ class HeroFrameSequence {
         }
 
         const clampedFrame = Math.min(Math.max(this.currentRenderFrameFloat, 0), this.frameCount - 1);
-        const baseFrame = Math.floor(clampedFrame);
-        const nextFrame = Math.min(baseFrame + 1, this.frameCount - 1);
-        const mix = clampedFrame - baseFrame;
+        const sampleStep = Math.max(this.frameSampleStep, 1);
+        const baseFrame = this.normalizeFrameIndex(Math.floor(clampedFrame / sampleStep) * sampleStep);
+        const nextFrame = Math.min(baseFrame + sampleStep, this.frameCount - 1);
+        const span = Math.max(nextFrame - baseFrame, 1);
+        const mix = Math.min(Math.max((clampedFrame - baseFrame) / span, 0), 1);
 
         this.enqueueFrame(baseFrame, true);
         if (nextFrame !== baseFrame) {
@@ -385,8 +411,9 @@ class HeroFrameSequence {
     queuePriorityFrames(targetFrame) {
         this.enqueueFrame(targetFrame, true);
         for (let step = 1; step <= this.prefetchRadius; step++) {
-            this.enqueueFrame(targetFrame + step, true);
-            this.enqueueFrame(targetFrame - step, true);
+            const offset = step * this.frameSampleStep;
+            this.enqueueFrame(targetFrame + offset, true);
+            this.enqueueFrame(targetFrame - offset, true);
         }
     }
 
@@ -395,21 +422,30 @@ class HeroFrameSequence {
         this.backgroundWarmupStarted = true;
 
         let index = 0;
-        const queueChunkSize = isMobile ? 14 : 26;
-        const queueDelay = isMobile ? 90 : 60;
+        const queueChunkSize = this.isPhoneViewport ? 8 : 26;
+        const queueDelay = this.isPhoneViewport ? 160 : 60;
 
         const queueNextChunk = () => {
             let queued = 0;
             while (index < this.frameCount && queued < queueChunkSize) {
                 this.enqueueFrame(index, false);
-                index++;
+                index += this.frameSampleStep;
                 queued++;
             }
             if (index < this.frameCount) {
                 this.warmupTimer = window.setTimeout(queueNextChunk, queueDelay);
+            } else {
+                this.enqueueFrame(this.frameCount - 1, false);
             }
         };
         queueNextChunk();
+    }
+
+    normalizeFrameIndex(index) {
+        const clamped = Math.max(0, Math.min(Math.round(index), this.frameCount - 1));
+        if (this.frameSampleStep <= 1 || clamped === this.frameCount - 1) return clamped;
+        const snapped = Math.round(clamped / this.frameSampleStep) * this.frameSampleStep;
+        return Math.max(0, Math.min(snapped, this.frameCount - 1));
     }
 
     registerLoadedFrame(index, image) {
@@ -419,16 +455,17 @@ class HeroFrameSequence {
     }
 
     enqueueFrame(index, highPriority) {
-        if (index < 0 || index >= this.frameCount) return;
+        const normalizedIndex = this.normalizeFrameIndex(index);
+        if (normalizedIndex < 0 || normalizedIndex >= this.frameCount) return;
 
-        if (this.loadedFrames.has(index) || this.failedFrames.has(index)) return;
-        if (this.loadingFrames.has(index) || this.queuedFrames.has(index)) return;
+        if (this.loadedFrames.has(normalizedIndex) || this.failedFrames.has(normalizedIndex)) return;
+        if (this.loadingFrames.has(normalizedIndex) || this.queuedFrames.has(normalizedIndex)) return;
 
-        this.queuedFrames.add(index);
+        this.queuedFrames.add(normalizedIndex);
         if (highPriority) {
-            this.loadQueue.unshift(index);
+            this.loadQueue.unshift(normalizedIndex);
         } else {
-            this.loadQueue.push(index);
+            this.loadQueue.push(normalizedIndex);
         }
         this.processQueue();
     }
@@ -481,7 +518,16 @@ class HeroFrameSequence {
         const baseImage = this.frameCache.get(baseFrame);
         const nextImage = this.frameCache.get(nextFrame);
 
-        if (baseImage && nextImage && nextFrame !== baseFrame && mix > 0.001) {
+        if (!this.allowFrameBlend) {
+            const preferredFrame = mix >= 0.5 ? nextFrame : baseFrame;
+            const preferredImage = this.frameCache.get(preferredFrame);
+            if (preferredImage) {
+                this.drawSingleFrame(preferredImage);
+                return;
+            }
+        }
+
+        if (this.allowFrameBlend && baseImage && nextImage && nextFrame !== baseFrame && mix > 0.001) {
             this.drawBlendedFrames(baseImage, 1 - mix, nextImage, mix);
             return;
         }
@@ -590,11 +636,12 @@ class HeroFrameSequence {
     }
 
     renderFallbackFrame(index) {
+        const normalizedIndex = this.normalizeFrameIndex(index);
         if (!this.imageElement) return;
-        if (index < 0 || index >= this.frameCount) return;
-        if (index === this.lastFallbackFrame) return;
-        this.imageElement.src = this.getFramePath(index);
-        this.lastFallbackFrame = index;
+        if (normalizedIndex < 0 || normalizedIndex >= this.frameCount) return;
+        if (normalizedIndex === this.lastFallbackFrame) return;
+        this.imageElement.src = this.getFramePath(normalizedIndex);
+        this.lastFallbackFrame = normalizedIndex;
     }
 
     destroy() {

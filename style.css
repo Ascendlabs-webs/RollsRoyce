@@ -236,7 +236,8 @@ body {
 
 @media (max-width: 768px) {
     .frame-image {
-        object-fit: contain;
+        object-fit: cover;
+        object-position: center;
     }
 }
 
@@ -635,12 +636,24 @@ body {
     }
 
     .text-container.typography-reveal {
-        padding: 0 8%;
+        padding: 0 6%;
         max-width: 100%;
     }
 
     .title {
-        font-size: clamp(2.5rem, 10vw, 4rem);
+        font-size: clamp(2rem, 7.8vw, 3rem);
+        letter-spacing: 0.028em;
+    }
+
+    .typography-headline {
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        gap: 0;
+        justify-content: center;
+    }
+
+    .typography-space {
+        width: 0.24em;
     }
 
     .subtitle,
@@ -685,6 +698,15 @@ body {
 }
 
 @media (max-width: 480px) {
+    .title {
+        font-size: clamp(1.65rem, 8.6vw, 2.35rem);
+        letter-spacing: 0.02em;
+    }
+
+    .typography-space {
+        width: 0.2em;
+    }
+
     .canvas-container {
         height: 56vh;
         min-height: 300px;
