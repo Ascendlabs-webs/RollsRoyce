@@ -2,6 +2,12 @@
 const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined';
 const hasTHREE = typeof window.THREE !== 'undefined';
 const isMobile = window.matchMedia('(max-width: 768px)').matches;
+const networkInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+const prefersReducedData = Boolean(networkInfo && networkInfo.saveData);
+const effectiveNetworkType = networkInfo && typeof networkInfo.effectiveType === 'string'
+    ? networkInfo.effectiveType.toLowerCase()
+    : '';
+const isSlowNetwork = effectiveNetworkType.includes('2g') || effectiveNetworkType.includes('3g');
 
 if (hasGSAP && hasScrollTrigger) {
     gsap.registerPlugin(ScrollTrigger);
@@ -210,18 +216,24 @@ class HeroFrameSequence {
 
         this.sequenceFolder = 'ezgif-3e8f305767bab817-jpg';
         this.frameCount = 300;
+        this.performanceMode = isMobile || prefersReducedData || isSlowNetwork;
+        this.frameStride = this.performanceMode
+            ? (prefersReducedData || isSlowNetwork ? 3 : 2)
+            : 1;
+        this.scrollFrameCount = Math.ceil(this.frameCount / this.frameStride);
         this.currentTargetFrame = 0;
         this.lastRenderedFrame = -1;
         this.renderRaf = 0;
         this.backgroundWarmupStarted = false;
 
         this.loadedFrames = new Set([0]);
+        this.failedFrames = new Set();
         this.loadingFrames = new Set();
         this.queuedFrames = new Set();
         this.loadQueue = [];
         this.activeLoads = 0;
-        this.maxConcurrentLoads = isMobile ? 3 : 5;
-        this.prefetchRadius = isMobile ? 4 : 7;
+        this.maxConcurrentLoads = this.performanceMode ? 2 : 5;
+        this.prefetchRadius = this.performanceMode ? 3 : 7;
         this.revealThreshold = 0.12;
 
         this.handleScroll = this.handleScroll.bind(this);
@@ -238,7 +250,7 @@ class HeroFrameSequence {
 
     setupScrollDistance() {
         // Long spacer gives enough precision for 300-frame interpolation.
-        const sequenceDistanceVh = isMobile ? 420 : 560;
+        const sequenceDistanceVh = this.performanceMode ? 340 : 560;
         this.scrollSpacer.style.height = `${sequenceDistanceVh}vh`;
     }
 
@@ -272,7 +284,10 @@ class HeroFrameSequence {
 
     updateFromScroll() {
         const progress = this.getScrollProgress();
-        const targetFrame = Math.round(progress * (this.frameCount - 1));
+        const targetSequenceFrame = Math.round(progress * (this.scrollFrameCount - 1));
+        const targetFrame = progress >= 1
+            ? this.frameCount - 1
+            : Math.min(targetSequenceFrame * this.frameStride, this.frameCount - 1);
         this.currentTargetFrame = targetFrame;
 
         this.queuePriorityFrames(targetFrame);
@@ -291,36 +306,42 @@ class HeroFrameSequence {
     queuePriorityFrames(targetFrame) {
         this.enqueueFrame(targetFrame, true);
         for (let step = 1; step <= this.prefetchRadius; step++) {
-            this.enqueueFrame(targetFrame + step, true);
-            this.enqueueFrame(targetFrame - step, true);
+            const offset = step * this.frameStride;
+            this.enqueueFrame(targetFrame + offset, true);
+            this.enqueueFrame(targetFrame - offset, true);
         }
     }
 
     startBackgroundWarmup() {
         let index = 0;
+        const queueChunkSize = this.performanceMode ? 12 : 24;
+        const queueDelay = this.performanceMode ? 180 : 120;
         const queueNextChunk = () => {
             let queued = 0;
-            while (index < this.frameCount && queued < 24) {
+            while (index < this.frameCount && queued < queueChunkSize) {
                 this.enqueueFrame(index, false);
-                index++;
+                index += this.frameStride;
                 queued++;
             }
             if (index < this.frameCount) {
-                setTimeout(queueNextChunk, 140);
+                setTimeout(queueNextChunk, queueDelay);
             }
         };
         queueNextChunk();
     }
 
     enqueueFrame(index, highPriority) {
-        if (index < 0 || index >= this.frameCount) return;
-        if (this.loadedFrames.has(index) || this.loadingFrames.has(index) || this.queuedFrames.has(index)) return;
+        const normalizedIndex = Math.round(index / this.frameStride) * this.frameStride;
+        const clampedIndex = Math.max(0, Math.min(normalizedIndex, this.frameCount - 1));
 
-        this.queuedFrames.add(index);
+        if (this.loadedFrames.has(clampedIndex) || this.failedFrames.has(clampedIndex)) return;
+        if (this.loadingFrames.has(clampedIndex) || this.queuedFrames.has(clampedIndex)) return;
+
+        this.queuedFrames.add(clampedIndex);
         if (highPriority) {
-            this.loadQueue.unshift(index);
+            this.loadQueue.unshift(clampedIndex);
         } else {
-            this.loadQueue.push(index);
+            this.loadQueue.push(clampedIndex);
         }
         this.processQueue();
     }
@@ -338,6 +359,7 @@ class HeroFrameSequence {
 
             const image = new Image();
             image.decoding = 'async';
+            image.loading = 'eager';
             image.src = this.getFramePath(index);
 
             const finishLoad = () => {
@@ -351,8 +373,19 @@ class HeroFrameSequence {
                 this.processQueue();
             };
 
-            image.onload = finishLoad;
-            image.onerror = finishLoad;
+            image.onload = () => {
+                if (typeof image.decode === 'function') {
+                    image.decode().catch(() => undefined).finally(finishLoad);
+                    return;
+                }
+                finishLoad();
+            };
+            image.onerror = () => {
+                this.loadingFrames.delete(index);
+                this.failedFrames.add(index);
+                this.activeLoads = Math.max(0, this.activeLoads - 1);
+                this.processQueue();
+            };
         }
     }
 
@@ -364,16 +397,16 @@ class HeroFrameSequence {
 
         let nearestBack = targetFrame;
         while (nearestBack >= 0 && !this.loadedFrames.has(nearestBack)) {
-            nearestBack--;
+            nearestBack -= this.frameStride;
         }
         if (nearestBack >= 0) {
             this.renderFrame(nearestBack);
             return;
         }
 
-        let nearestForward = targetFrame + 1;
+        let nearestForward = targetFrame + this.frameStride;
         while (nearestForward < this.frameCount && !this.loadedFrames.has(nearestForward)) {
-            nearestForward++;
+            nearestForward += this.frameStride;
         }
         if (nearestForward < this.frameCount) {
             this.renderFrame(nearestForward);
@@ -437,7 +470,7 @@ class Model3DViewer {
 
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.25 : 2));
         this.renderer.setClearColor(0x000000, 0);
 
         const ambient = new THREE.AmbientLight(0xffffff, 0.6);
@@ -520,6 +553,7 @@ class Model3DViewer {
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.25 : 2));
     }
 
     animate() {
