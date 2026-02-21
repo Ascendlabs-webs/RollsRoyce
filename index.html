@@ -1,0 +1,181 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Premium automotive brand experience concept showcasing scroll-driven storytelling and luxury interface design by Ascend Labs.">
+    <meta name="keywords" content="luxury automotive, brand experience, scroll animation, UX design, portfolio">
+    <meta name="author" content="Ascend Labs">
+    <meta name="theme-color" content="#0A0A0A">
+
+    <meta property="og:title" content="Rolls-Royce Black Badge | Luxury Brand Experience">
+    <meta property="og:description" content="Premium scroll-driven brand experience concept">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+    <title>Rolls-Royce Black Badge | The Pinnacle of Luxury</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="portfolio-badge" role="contentinfo" aria-label="Portfolio attribution">
+        <span class="badge-text">Concept Experience - Ascend Labs</span>
+    </div>
+
+    <aside class="preloader" role="status" aria-label="Loading experience">
+        <div class="preloader-content">
+            <div class="spirit-icon" aria-hidden="true">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M30 5L35 25H45L37 33L41 53L30 43L19 53L23 33L15 25H25L30 5Z" fill="#D4AF37"/>
+                </svg>
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <p class="sr-only">Loading luxury experience</p>
+        </div>
+    </aside>
+
+    <div class="scroll-indicator" role="progressbar" aria-label="Scroll progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div class="scroll-progress"></div>
+    </div>
+
+    <div class="grain-overlay" aria-hidden="true"></div>
+
+    <div class="scroll-spacer"></div>
+
+    <section class="viewport-pin" aria-label="Interactive luxury automotive showcase">
+        <div class="vignette" aria-hidden="true"></div>
+
+        <!-- Hero image element acts as the render target for the 300-frame scroll sequence. -->
+        <div class="frame-container" role="img" aria-label="Rolls-Royce Black Badge hero image">
+            <div class="frame">
+                <img src="ezgif-3e8f305767bab817-jpg/ezgif-frame-001.jpg" alt="Rolls-Royce Black Badge front three-quarter view in dramatic lighting" class="frame-image" loading="eager">
+            </div>
+        </div>
+
+        <!-- Premium typography reveal section: letters are split and animated in script.js. -->
+        <header class="text-container typography-reveal" role="banner" data-animate-once="true">
+            <h1 class="title typography-headline" data-typography-headline>BLACK BADGE</h1>
+            <p class="subtitle typography-subtext">The dark side of luxury</p>
+        </header>
+    </section>
+
+    <section class="model-3d-section" aria-label="Interactive 3D vehicle showcase">
+        <div class="model-3d-container">
+            <div class="model-3d-header">
+                <span class="model-3d-label">Interactive Experience</span>
+                <h2 class="model-3d-title">Explore in 3D</h2>
+                <p class="model-3d-subtitle">Drag to rotate - Scroll to zoom - Discover every angle</p>
+            </div>
+            <div id="canvas-container" class="canvas-container">
+                <div class="canvas-texture" aria-hidden="true"></div>
+                <canvas id="model-canvas"></canvas>
+                <div class="model-controls">
+                    <button class="model-control-btn" id="resetView" aria-label="Reset view">Reset</button>
+                    <button class="model-control-btn" id="autoRotate" aria-label="Toggle auto-rotate">Auto</button>
+                </div>
+                <div class="model-loading" id="modelLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading 3D Model...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <article class="case-study-section" role="article">
+        <div class="case-study-container">
+            <header class="case-study-header">
+                <span class="case-study-label">Portfolio Case Study</span>
+                <h2 class="case-study-title">Redefining Luxury Through Scroll-Driven Storytelling</h2>
+                <p class="case-study-intro">An immersive brand experience concept demonstrating how premium automotive brands can leverage cinematic scroll interactions to build emotional connection and desire.</p>
+            </header>
+
+            <div class="case-study-grid">
+                <section class="case-study-block">
+                    <h3 class="block-title">Project Overview</h3>
+                    <p class="block-content">A conceptual luxury automotive brand experience designed to showcase how ultra-premium brands can translate physical showroom presence into digital environments. The project demonstrates scroll-based narrative progression where each frame reveals a carefully choreographed story beat, mirroring the deliberate pace of in-person luxury vehicle presentations.</p>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">Objective</h3>
+                    <p class="block-content">Create a portfolio-grade demonstration of cinematic web design principles for luxury automotive clients. Prove capability in crafting emotionally resonant digital experiences that match the prestige of ultra-luxury brands while maintaining flawless technical execution and performance optimization.</p>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">Target Audience</h3>
+                    <div class="block-content">
+                        <p><strong>Primary:</strong> Creative directors and marketing leaders at luxury automotive OEMs seeking to elevate their digital brand presence.</p>
+                        <p><strong>Secondary:</strong> High-net-worth individuals engaging with premium automotive content, expecting presentation quality that matches six-figure product positioning.</p>
+                    </div>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">UX Strategy</h3>
+                    <div class="block-content">
+                        <p><strong>Scroll as Progression:</strong> User controls pacing through scroll input, maintaining agency while experiencing curated narrative flow.</p>
+                        <p><strong>Layered Visual Hierarchy:</strong> Typography, scale transitions, and parallax depth create multi-dimensional storytelling.</p>
+                        <p><strong>Minimal Cognitive Load:</strong> Interface presents a single focused message at each moment.</p>
+                    </div>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">Technical Execution</h3>
+                    <div class="block-content">
+                        <p><strong>Animation Architecture:</strong> GSAP-powered scroll-linked timeline with tuned easing and overlap.</p>
+                        <p><strong>Asset Strategy:</strong> WebP image compression and progressive loading maintain fidelity with lower payload.</p>
+                        <p><strong>Accessibility Foundation:</strong> Semantic structure and reduced-motion support improve inclusivity.</p>
+                    </div>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">Technologies Used</h3>
+                    <ul class="block-list">
+                        <li><strong>GSAP 3.12</strong> with ScrollTrigger</li>
+                        <li><strong>Vanilla JavaScript</strong> for control logic</li>
+                        <li><strong>WebP images</strong> for quality-to-size balance</li>
+                        <li><strong>CSS Grid & Flexbox</strong> for responsive layout</li>
+                        <li><strong>Custom CSS Properties</strong> for theme consistency</li>
+                        <li><strong>Semantic HTML5</strong> for accessibility and SEO</li>
+                    </ul>
+                </section>
+
+                <section class="case-study-block">
+                    <h3 class="block-title">Performance Considerations</h3>
+                    <div class="block-content">
+                        <p><strong>Critical Path:</strong> Preconnect hints and deferred scripts reduce startup latency.</p>
+                        <p><strong>GPU Acceleration:</strong> Transform-based animations keep frame rate stable.</p>
+                        <p><strong>Lazy Loading:</strong> Off-screen media deferment lowers initial bandwidth.</p>
+                    </div>
+                </section>
+
+                <section class="case-study-block case-study-block-highlight">
+                    <h3 class="block-title">Expected Business Impact</h3>
+                    <div class="block-content">
+                        <p><strong>Elevated Brand Perception:</strong> Digital presence reflects physical showroom quality.</p>
+                        <p><strong>Increased Engagement:</strong> Narrative scrolling extends session duration.</p>
+                        <p><strong>Conversion Signal:</strong> Full-scroll users indicate stronger purchase intent.</p>
+                        <p><strong>Portfolio Differentiation:</strong> Demonstrates capability to deliver luxury-grade interactions.</p>
+                    </div>
+                </section>
+            </div>
+
+            <footer class="case-study-footer">
+                <div class="cta-block">
+                    <p class="cta-headline">Interested in elevating your brand's digital presence?</p>
+                    <p class="cta-subtext">We craft premium digital experiences for luxury brands that demand excellence.</p>
+                </div>
+            </footer>
+        </div>
+    </article>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+    <script src="script.js" defer></script>
+</body>
+</html>
